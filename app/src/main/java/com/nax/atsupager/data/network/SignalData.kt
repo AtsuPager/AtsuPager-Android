@@ -1,3 +1,8 @@
+/*
+ * AtsuPager - Secure Bitcoin-based Messenger
+ * Copyright (c) 2026 AtsuLab. All rights reserved.
+ */
+
 package com.nax.atsupager.data.network
 
 import com.google.gson.annotations.SerializedName
@@ -36,16 +41,12 @@ enum class SignalType {
     @SerializedName("CHECKERS_CLOSE") CHECKERS_CLOSE,
     @SerializedName("CHECKERS_SYNC") CHECKERS_SYNC,
     @SerializedName("VIDEO_STATE") VIDEO_STATE,
-    @SerializedName("AUDIO_STATE") AUDIO_STATE
+    @SerializedName("AUDIO_STATE") AUDIO_STATE,
+    
+    // Access and subscription types
+    @SerializedName("ACCESS_VERIFY") ACCESS_VERIFY,
+    @SerializedName("ACCESS_RESULT") ACCESS_RESULT
 }
-
-data class GameInvitePacket(
-    @SerializedName("gameType") val gameType: String,
-    @SerializedName("senderId") val senderId: String,
-    @SerializedName("senderColor") val senderColor: String,
-    @SerializedName("gameId") val gameId: String = UUID.randomUUID().toString(),
-    @SerializedName("initialData") val initialData: String? = null
-)
 
 data class SignalData(
     @SerializedName("callId") val callId: String,
@@ -55,14 +56,22 @@ data class SignalData(
     @SerializedName("isIceRestart") val isIceRestart: Boolean = false
 )
 
-data class DeleteMessagePacket(
-    @SerializedName("remoteId") val remoteId: String
+data class AccessCodePacket(
+    @SerializedName("code") val code: String,
+    @SerializedName("address") val address: String,
+    @SerializedName("signature") val signature: String
 )
 
-data class ReceiptPacket(
-    @SerializedName("remoteId") val remoteId: String
+data class AccessResultPacket(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("expiry") val expiry: Long,
+    @SerializedName("error") val error: String? = null
 )
 
+data class DeleteMessagePacket(@SerializedName("remoteId") val remoteId: String)
+data class ReceiptPacket(@SerializedName("remoteId") val remoteId: String)
+
+// Game related packets
 data class ChessMovePacket(
     @SerializedName("fen") val fen: String,
     @SerializedName("fromR") val fromR: Int,
@@ -88,6 +97,14 @@ data class BackgammonMovePacket(
     @SerializedName("state") val state: String,
     @SerializedName("moveIndex") val moveIndex: Int = 0,
     @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis()
+)
+
+data class GameInvitePacket(
+    @SerializedName("gameType") val gameType: String,
+    @SerializedName("senderId") val senderId: String,
+    @SerializedName("senderColor") val senderColor: String,
+    @SerializedName("gameId") val gameId: String = UUID.randomUUID().toString(),
+    @SerializedName("initialData") val initialData: String? = null
 )
 
 data class ChessInvitePacket(

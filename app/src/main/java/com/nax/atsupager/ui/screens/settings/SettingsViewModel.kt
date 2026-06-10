@@ -229,19 +229,30 @@ class SettingsViewModel @Inject constructor(
         ) }
     }
 
+    /**
+     * Обрабатывает код активации: очищает от мусора, подписывает и отправляет на сервер.
+     */
     fun applyAccessCode(code: String, onResult: (Boolean, String?) -> Unit) {
+        // Очистка: только буквы и цифры в верхнем регистре
+        val cleanCode = code.replace(Regex("[^A-Z0-9]"), "").uppercase()
+
+        if (cleanCode.length != 16) {
+            onResult(false, context.getString(R.string.invalid_code))
+            return
+        }
+
         viewModelScope.launch {
-            // В реальной версии здесь будет запрос к вашему серверу через SignalRepository
-            // Сейчас имитируем проверку
-            delay(1500)
-            if (code.length == 16) { // Простая проверка формата для теста
-                val newExpiry = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000) // +30 дней
-                val storageUserId = authRepository.getCurrentUserId() ?: sessionManager.getActiveProfileId()
-                prefs.edit().putLong("${PREF_ACCESS_EXPIRY}_$storageUserId", newExpiry).apply()
-                loadSettings()
-                onResult(true, null)
-            } else {
-                onResult(false, context.getString(R.string.invalid_code))
+            signalRepository.verifyAccessCode(cleanCode) { success, error, expiry ->
+                viewModelScope.launch {
+                    if (success && expiry != null) {
+                        val storageUserId = authRepository.getCurrentUserId() ?: sessionManager.getActiveProfileId()
+                        prefs.edit().putLong("${PREF_ACCESS_EXPIRY}_$storageUserId", expiry).apply()
+                        loadSettings()
+                        onResult(true, null)
+                    } else {
+                        onResult(false, error ?: context.getString(R.string.invalid_code))
+                    }
+                }
             }
         }
     }

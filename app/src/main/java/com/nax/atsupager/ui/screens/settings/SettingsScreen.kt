@@ -562,19 +562,30 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                 Column {
                     Text(stringResource(R.string.buy_code_info), style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(
+                    StyledTextField(
                         value = codeInput,
-                        onValueChange = { if (it.length <= 16) codeInput = it.uppercase() },
-                        label = { Text(stringResource(R.string.enter_code_hint)) },
+                        onValueChange = { 
+                            // Allow letters, digits and hyphens
+                            val filtered = it.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
+                            if (filtered.length <= 25) codeInput = filtered 
+                        },
+                        placeholderText = stringResource(R.string.enter_code_hint),
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        isError = errorText != null,
-                        supportingText = { errorText?.let { Text(it) } },
-                        enabled = !isVerifying
+                        keyboardOptions = KeyboardSecurity.secureChatOptions
                     )
+                    if (errorText != null) {
+                        Text(
+                            text = errorText!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
+                // Count only alphanumeric characters
+                val cleanLength = codeInput.filter { it.isLetterOrDigit() }.length
                 Button(
                     onClick = {
                         isVerifying = true
@@ -587,7 +598,8 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                             }
                         }
                     },
-                    enabled = codeInput.length == 16 && !isVerifying
+                    // Enabled only if exactly 16 meaningful symbols are present
+                    enabled = cleanLength == 16 && !isVerifying
                 ) {
                     if (isVerifying) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                     else Text(stringResource(R.string.apply_code))
@@ -672,7 +684,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                 TextButton(onClick = { 
                     deletePinInput = ""
                     profileToDelete = null 
-                }) { Text(stringResource(R.string.cancel)) }
+                }) { Text(stringResource(R.string.cancel)) } 
             }
         )
     }
