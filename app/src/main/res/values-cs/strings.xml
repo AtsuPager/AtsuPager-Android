@@ -1,0 +1,300 @@
+<resources>
+    <string name="app_name">AtsuPager</string>
+    <string name="widget_description">Zobrazuje kurzy kryptoměn a stav hovoru</string>
+    <string name="audio_playback_attribution">Přehrávání zvuku hovoru</string>
+
+    <!-- Obecné -->
+    <string name="back">Zpět</string>
+    <string name="cancel">Zrušit</string>
+    <string name="delete">Smazat</string>
+    <string name="loading">Načítání…</string>
+    <string name="error">Chyba</string>
+    <string name="send">Odeslat</string>
+    <string name="stop">Stop</string>
+    <string name="pause">Pauza</string>
+    <string name="play">Přehrát</string>
+    <string name="accept">Přijmout</string>
+    <string name="reject">Odmítnout</string>
+    <string name="add">Přidat</string>
+    <string name="save">Uložit</string>
+    <string name="search">Hledat</string>
+    <string name="refresh">Obnovit</string>
+    <string name="white">Bílá</string>
+    <string name="black">Černá</string>
+    <string name="retry">Zkusit znovu</string>
+    <string name="system_default">Výchozí systémové</string>
+    <string name="close">Zavřít</string>
+    <string name="next">Další</string>
+
+    <!-- Navigace / Karty -->
+    <string name="tab_chats">Historie</string>
+    <string name="tab_contacts">Kontakty</string>
+    <string name="tab_settings">Nastavení</string>
+
+    <!-- Náhledy zpráv -->
+    <string name="preview_text_incoming">Příchozí zpráva</string>
+    <string name="preview_text_outgoing">Odchozí zpráva</string>
+    <string name="preview_image_incoming">Přijatá fotka</string>
+    <string name="preview_image_outgoing">Odeslaná fotka</string>
+    <string name="preview_video_incoming">Přijaté video</string>
+    <string name="preview_video_outgoing">Odeslané video</string>
+    <string name="preview_audio_incoming">Přijatá hlasová zpráva</string>
+    <string name="preview_audio_outgoing">Odeslaná hlasová zpráva</string>
+    <string name="preview_file_incoming">Přijatý soubor</string>
+    <string name="preview_file_outgoing">Odeslaný soubor</string>
+    <string name="preview_incoming_call">Příchozí hovor</string>
+    <string name="preview_outgoing_call">Odchozí hovor</string>
+    <string name="preview_missed_call">Zmeškaný hovor</string>
+
+    <!-- Obrazovka nastavení -->
+    <string name="profile_settings">Profil</string>
+    <string name="login_name">Uživatelské jméno</string>
+    <string name="your_id">Vaše identita</string>
+    <string name="keys_and_identity">Klíče a identita</string>
+    <string name="generate_new_keys">Generovat nové klíče</string>
+    <string name="bitcoin_address">Bitcoinová adresa (DID)</string>
+    <string name="show_mnemonic">Zobrazit obnovovací frázi</string>
+    <string name="your_mnemonic">Vaše obnovovací fráze</string>
+    <string name="mnemonic_warning">VAROVÁNÍ: Zapište si těchto 12 slov na papír. Kdokoli má tato slova, může získat přístup k vaší identitě a zprávám. Nesdílejte je!</string>
+    <string name="import_mnemonic">Importovat z fráze</string>
+    <string name="mnemonic_placeholder">slovo1 slovo2 …</string>
+    <string name="import_action">Importovat</string>
+
+    <string name="enable_ntfy">Povolit ntfy</string>
+    <string name="ntfy_description">Oznámení na pozadí</string>
+    <string name="privacy_settings">Soukromí</string>
+    <string name="security_settings">Zabezpečení</string>
+    <string name="privacy_security">Soukromí a zabezpečení</string>
+    <string name="disable_screenshots">Zakázat snímky obrazovky</string>
+    <string name="disable_screenshots_description">Zabránit pořizování snímků obrazovky a skrýt obsah obrazovky v seznamu spuštěných aplikací</string>
+    <string name="only_contacts">Pouze od kontaktů</string>
+    <string name="only_contacts_description">Přijímat hovory a zprávy pouze od kontaktů v seznamu</string>
+    <string name="auto_download">Automatické stahování</string>
+    <string name="auto_download_description">Automaticky stahovat soubory v chatech</string>
+    <string name="app_lock">Zámek aplikace</string>
+    <string name="app_lock_description">Vyžadovat otisk prstu pro otevření aplikace</string>
+    <string name="set_pin">Nastavit PIN</string>
+    <string name="pin_set">PIN je nastaven</string>
+    <string name="pin_not_set">PIN není nastaven</string>
+    <string name="biometric_unlock">Biometrické odemknutí</string>
+    <string name="biometric_title">Biometrické ověření</string>
+    <string name="biometric_subtitle">Přihlaste se pomocí biometrických údajů</string>
+    <string name="biometric_negative_button">Použít PIN</string>
+    <string name="change_pin">Změnit PIN</string>
+    <string name="pin_setup_title">Nastavení PIN</string>
+    <string name="pin_setup_desc">Zadejte číselný kód pro ochranu aplikace.</string>
+    <string name="ntfy_server">ntfy Server</string>
+    <string name="save_server">Uložit server</string>
+    <string name="default_server">Výchozí: %1$s</string>
+    <string name="ntfy_error">Chyba připojení k serveru! Zkontrolujte adresu nebo internet.</string>
+    <string name="language">Jazyk aplikace</string>
+    <string name="choose_language">Vyberte jazyk</string>
+    <string name="theme">Téma aplikace</string>
+    <string name="theme_light">Světlé</string>
+    <string name="theme_dark">Tmavé</string>
+    <string name="theme_system">Výchozí systémové</string>
+    <string name="network_settings">Nastavení sítě</string>
+    <string name="ntfy_status_label">ntfy: %1$s</string>
+    <string name="vps_status_label">VPS: %1$s</string>
+
+    <!-- Ochrana metadat a TTL -->
+    <string name="proxy_settings_title">Ochrana metadat (SOCKS5/Tor)</string>
+    <string name="enable_proxy">Povolit Proxy</string>
+    <string name="enable_proxy_description">Směrovat provoz přes Tor nebo SOCKS5 pro skrytí vaší IP adresy</string>
+    <string name="proxy_host">Hostitel</string>
+    <string name="proxy_port">Port</string>
+    <string name="message_ttl_title">Životní cyklus zpráv (TTL)</string>
+    <string name="message_ttl_description">Automaticky vymazat historii chatu na obou zařízeních po uplynutí doby</string>
+    <string name="message_ttl_dialog_title">Automaticky mazat zprávy po</string>
+    <string name="ttl_disabled">Zakázáno</string>
+    <string name="ttl_1h">1 hodina</string>
+    <string name="ttl_24h">24 hodin</string>
+    <string name="ttl_7d">7 dní</string>
+    <string name="ttl_30d">30 dní</string>
+
+    <!-- Hlavní obrazovka / Chat -->
+    <string name="chat_menu">Menu</string>
+    <string name="clear_chat">Vymazat chat</string>
+    <string name="clear_chat_confirm_title">Vymazat chat?</string>
+    <string name="clear_chat_confirm_msg">Opravdu chcete smazat všechny zprávy? To také trvale odstraní všechna šifrovaná média pro tento chat.</string>
+    <string name="delete_files_on_device">Smazat exportované soubory ze složky AtsuPager</string>
+    <string name="clear_button">Vymazat</string>
+    <string name="message_placeholder">Zpráva…</string>
+    <string name="to_chat">Do chatu</string>
+    <string name="delete_message_title">Smazat zprávu?</string>
+    <string name="delete_message_msg">Opravdu chcete smazat tuto zprávu? Šifrovaná média budou trvale smazána.</string>
+    <string name="delete_file_from_device">Smazat exportovaný soubor ze složky AtsuPager</string>
+    <string name="export_file">Exportovat</string>
+    <string name="export_confirm_title">Exportovat soubor?</string>
+    <string name="export_confirm_msg">Soubor bude dešifrován a uložen do veřejné složky \"AtsuPager\" ve Stažených souborech. Původní šifrovaná verze bude smazána. VAROVÁNÍ: Tento soubor již nebude chráněn šifrováním AES-256 aplikace.</string>
+    <string name="exporting">Exportování…</string>
+    <string name="export_success">Soubor byl úspěšně exportován do složky AtsuPager</string>
+    <string name="export_failed">Export souboru se nezdařil</string>
+    <string name="clipboard_cleared">Schránka byla z bezpečnostních důvodů vymazána</string>
+
+    <!-- Hovory -->
+    <string name="call">Volat</string>
+    <string name="video_call">Video hovor</string>
+    <string name="return_to_call">Vrátit se k hovoru</string>
+    <string name="outgoing_call">Odchozí hovor</string>
+    <string name="incoming_call">Příchozí hovor</string>
+    <string name="missed_call">Zmeškaný hovor</string>
+    <string name="call_ended">Hovor ukončen</string>
+    <string name="connecting">Připojování…</string>
+    <string name="reconnecting">Opětovné připojování…</string>
+    <string name="calling">Volání…</string>
+    <string name="mic_off">Mikrofon vypnut</string>
+    <string name="camera_off">Kamera vypnuta</string>
+    <string name="caller_unknown">Účastník</string>
+    <string name="call_error">Chyba: %1$s</string>
+    <string name="hangup">Ukončit</string>
+    <string name="speaker">Reproduktor</string>
+    <string name="earpiece">Sluchátko</string>
+    <string name="call_ongoing">Probíhající hovor…</string>
+    <string name="enable_overlay">Povolit ikonu</string>
+    <string name="fullscreen">Celá obrazovka</string>
+    <string name="exit_fullscreen">Ukončit celou obrazovku</string>
+
+    <!-- Onboarding / Login -->
+    <string name="error_empty_username">Zadejte prosím uživatelské jméno</string>
+    <string name="error_mnemonic_size">Mnemotechnická fráze musí obsahovat přesně 12 slov</string>
+    <string name="error_unknown">Došlo k neznámé chybě</string>
+    <string name="feature_no_servers">Žádné servery</string>
+    <string name="feature_e2ee">Šifrování E2EE</string>
+    <string name="feature_zero_disk">Nulová stopa</string>
+    <string name="identity_ready_title">Identita je připravena</string>
+    <string name="identity_ready_subtitle">Toto je vaše jedinečná adresa. Sdílejte ji s přáteli, aby vás mohli najít.</string>
+    <string name="share_id_text">Ahoj! Přidej si mě na AtsuPager. Moje ID je:\n\n%1$s</string>
+    <string name="share_action">Sdílet ID</string>
+    <string name="get_started">Začít</string>
+    <string name="identity_hint_settings">Své ID a QR kód najdete vždy v Nastavení.</string>
+
+    <!-- Games -->
+    <string name="games">Hry</string>
+    <string name="chess">Šachy</string>
+    <string name="backgammon">Vrhcáby</string>
+    <string name="checkers">Dáma</string>
+    <string name="backgammon_long">Dlouhé vrhcáby</string>
+    <string name="invite_msg">%1$s vás zve ke hře %2$s. Přijmout pozvání?</string>
+    <string name="invite_msg_chat">vás zve ke hře %2$s.</string>
+    <string name="continue_game">Pokračovat ve hře</string>
+    <string name="play_as_white">Hrát za bílé</string>
+    <string name="play_as_black">Hrát za černé</string>
+    <string name="waiting_accept">Čekání na potvrzení od %1$s…</string>
+    <string name="coming_soon">Již brzy…</string>
+    <string name="status_active">Aktivní</string>
+    <string name="status_saved">Uloženo</string>
+
+    <!-- Chess / Backgammon / Checkers specifics -->
+    <string name="chess_white_win">BÍLÝ VYHRÁVÁ (ŠACHMAT)</string>
+    <string name="chess_black_win">ČERNÝ VYHRÁVÁ (ŠACHMAT)</string>
+    <string name="chess_draw">REMÍZA (PAT)</string>
+    <string name="chess_check">ŠACH!</string>
+    <string name="chess_your_turn">JSI NA TAHU</string>
+    <string name="chess_waiting_turn">ČEKÁNÍ NA TAH…</string>
+    <string name="chess_select_piece">Vybrat figurku</string>
+    <string name="checkers_white_win">BÍLÝ VYHRÁVÁ!</string>
+    <string name="checkers_black_win">ČERNÝ VYHRÁVÁ!</string>
+    <string name="roll_dice">Hodit kostkami</string>
+    <string name="bg_win">VÍTĚZ: %1$s</string>
+    <string name="bg_white">BÍLÝ</string>
+    <string name="bg_black">ČERNÝ</string>
+    <string name="bg_home">DOMŮ</string>
+    <string name="bg_your_turn">JSI NA TAHU</string>
+    <string name="bg_his_turn">JE NA TAHU</string>
+
+
+    <string name="select_text">Vybrat část</string>
+
+    <string name="no_chats">Historie chatu je prázdná</string>
+
+
+    <string name="download_options_title">Možnosti stahování</string>
+    <string name="download_options_msg">Vyberte způsob uložení souboru:</string>
+    <string name="download_to_public">Veřejná složka</string>
+    <string name="download_to_secure">Zabezpečené úložiště</string>
+    <string name="secure_storage_desc">Chráněno AES-256</string>
+    <string name="public_access_desc">Veřejný přístup</string>
+
+    <string name="export_contacts">Exportovat kontakty</string>
+    <string name="import_contacts">Importovat kontakty</string>
+    <string name="contacts_export_method">Vyberte metodu šifrování pro záložní soubor.</string>
+    <string name="contacts_backup_mnemonic">Mnemotechnická fráze</string>
+    <string name="contacts_backup_mnemonic_desc">Soubor bude přístupný pouze pro tento účet</string>
+    <string name="contacts_backup_password">Vlastní heslo</string>
+    <string name="contacts_backup_password_desc">Soubor lze importovat do libovolného zařízení</string>
+    <string name="contacts_backup_password_placeholder">Vytvořte heslo</string>
+    <string name="contacts_import_password_title">Vyžadováno heslo</string>
+    <string name="contacts_import_password_msg">Tento soubor je zašifrován heslem. Zadejte jej pro import kontaktů.</string>
+    <string name="contacts_import_password_placeholder">Zadejte heslo</string>
+    <string name="contacts_error_file_open">Soubor se nepodařilo otevřít</string>
+    <string name="contacts_export_success">Kontakty byly úspěšně exportovány</string>
+    <string name="contacts_export_failed">Export se nezdařil</string>
+    <string name="contacts_import_success">Kontakty byly úspěšně importovány</string>
+    <string name="contacts_import_error_data">Import se nezdařil: Neplatné heslo nebo data</string>
+    <string name="contacts_import_error_mnemonic">Import se nezdařil: neshoda mnemoniky</string>
+
+    <string name="text_copied">Text zkopírován</string>
+    <string name="settings_clipboard_title">Vymazat schránku</string>
+    <string name="settings_clipboard_description">Automaticky vymazat text po nastaveném čase</string>
+    <string name="settings_clipboard_30s">30 sekund</string>
+    <string name="settings_clipboard_1m">1 minuta</string>
+    <string name="settings_clipboard_5m">5 minut</string>
+    <string name="settings_clipboard_never">Nikdy</string>
+
+    <string name="chat">Chat</string>
+
+    <!-- Nastavení písma -->
+    <string name="settings_font_title">Písmo aplikace</string>
+    <string name="settings_font_system">Systémové (výchozí)</string>
+    <string name="settings_font_inter">Inter</string>
+    <string name="settings_font_manrope">Manrope</string>
+    <string name="settings_font_jetbrains">JetBrains Mono</string>
+
+    <string name="rename">Přejmenovat</string>
+    <string name="rename_contact">Přejmenovat kontakt</string>
+    <string name="contact_name">Jméno kontaktu</string>
+
+    <string name="bulk_delete_contact_single">Opravdu chcete smazat tento kontakt a celou historii?</string>
+    <string name="bulk_delete_contact_multiple">Smazat vybrané kontakty (%1$d) a historii chatu?</string>
+    <string name="bulk_delete_chat_single">Zcela vymazat tento chat?</string>
+    <string name="bulk_delete_chat_multiple">Zcela vymazat vybrané chaty (%1$d)?</string>
+    <string name="error_name_required">U tohoto kontaktu je vyžadováno jméno</string>
+
+    <string name="tab_contacts_history">Kontakty (Historie)</string>
+    <string name="chat_is_empty">Chat je prázdný</string>
+    <string name="clear_history_only">Vymazat pouze historii</string>
+    <string name="delete_all_confirm">Smazat kontakt A historii</string>
+    <string name="delete_contact_action">Smazat kontakt</string>
+
+    <string name="forward_to">Přeposlat…</string>
+
+    <string name="delete_for_everyone">Smazat pro všechny</string>
+
+    <string name="read_receipts">Potvrzení o přečtení</string>
+    <string name="read_receipts_desc">Odesílat a přijímat potvrzení o přečtení</string>
+
+    <string name="import_id">Importovat ID (12 slov)</string>
+    <string name="import_profile">Importovat ID (12 slov)</string>
+    <string name="empty_value_placeholder">—</string>
+    <string name="clipboard_label_id">AtsuID</string>
+    <string name="ntfy_placeholder">https://ntfy.sh</string>
+    <string name="qr_code_description">QR kód</string>
+
+    <string name="create_id">Vytvořit nové ID</string>
+
+    <!-- Server Access & Subscription -->
+    <string name="access_settings">Přístup k serveru</string>
+    <string name="access_status_label">Stav: %1$s</string>
+    <string name="access_status_active">Aktivní</string>
+    <string name="access_status_expired">Neaktivní / Vyžadováno</string>
+    <string name="access_expires_label">Vyprší dne: %1$s</string>
+    <string name="access_expiry_never">Nikdy nevyprší</string>
+    <string name="activate_access">Aktivovat přístup</string>
+    <string name="enter_code_hint">Zadejte 16místný přístupový kód</string>
+    <string name="buy_code_info">Aby byla vaše identita soukromá, používáme anonymní přístupové kódy. Můžete jej získat prostřednictvím našeho oficiálního portálu nebo bota.</string>
+    <string name="apply_code">Použít kód</string>
+    <string name="invalid_code">Neplatný nebo expirovaný kód</string>
+    <string name="code_activated">Přístup byl úspěšně aktivován!</string>
+
+</resources>

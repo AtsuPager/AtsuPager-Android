@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Использование Theme.AppCompat обязательно для работы AppCompatActivity и переключения языков -->
+    <style name="Theme.AtsuPager" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Основные цвета для системных элементов (статус-бар и т.д.) -->
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="colorAccent">@color/teal_200</item>
+    </style>
+</resources>

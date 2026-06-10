@@ -1,0 +1,29 @@
+# IDE and Tooling
+.idea/
+*.iml
+.gradle/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.log
+
+# Project secrets
+local.properties
+atsupager.txt
+google-services.json
+*.jks
+*.keystore
+
+# Build artifacts
+build/
+/*/build/
+/app/release/
+*.apk
+*.aar
+*.ap_
+*.der
+
+# OS specific
+.DS_Store
+Thumbs.db

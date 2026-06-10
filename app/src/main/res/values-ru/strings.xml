@@ -1,0 +1,393 @@
+<resources>
+    <string name="app_name">AtsuPager</string>
+    <string name="widget_description">Показывает курсы криптовалют и статус звонка</string>
+    <string name="audio_playback_attribution">Воспроизведение звука звонка</string>
+
+    <!-- Общее -->
+    <string name="back">Назад</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="error">Ошибка</string>
+    <string name="send">Отправить</string>
+    <string name="stop">Стоп</string>
+    <string name="pause">Пауза</string>
+    <string name="play">Играть</string>
+    <string name="accept">Принять</string>
+    <string name="reject">Отклонить</string>
+    <string name="add">Добавить</string>
+    <string name="save">Сохранить</string>
+    <string name="search">Поиск</string>
+    <string name="refresh">Обновить</string>
+    <string name="white">Белый</string>
+    <string name="black">Черный</string>
+    <string name="retry">Попробовать снова</string>
+    <string name="system_default">Системный (по умолчанию)</string>
+    <string name="close">Закрыть</string>
+    <string name="next">Далее</string>
+
+    <!-- Навигация -->
+    <string name="tab_chats">История</string>
+    <string name="tab_contacts">Контакты</string>
+    <string name="tab_settings">Настройки</string>
+
+    <!-- Экраны контактов -->
+    <string name="search_chats">Поиск чатов</string>
+    <string name="search_contacts">Поиск контактов</string>
+    <string name="add_contact">Добавить контакт</string>
+    <string name="add_contact_title">Добавить контакт?</string>
+    <string name="add_contact_msg">Добавить %1$s в список контактов?</string>
+    <string name="delete_contact_title">Удалить контакт?</string>
+    <string name="delete_contact_msg">История чата с %1$s также будет удалена.</string>
+    <string name="username_placeholder">Имя пользователя</string>
+    <string name="no_chats">История переписки пуста</string>
+    <string name="no_chats_found">Чаты не найдены</string>
+    <string name="no_contacts">Список контактов пуст</string>
+    <string name="no_contacts_found">Ничего не найдено</string>
+    <string name="unknown_contacts_header">НОВЫЕ ЗАПРОСЫ</string>
+
+    <!-- Превью сообщений -->
+    <string name="preview_text_incoming">Входящее сообщение</string>
+    <string name="preview_text_outgoing">Исходящее сообщение</string>
+    <string name="preview_image_incoming">Получено фото</string>
+    <string name="preview_image_outgoing">Отправлено фото</string>
+    <string name="preview_video_incoming">Получено видео</string>
+    <string name="preview_video_outgoing">Отправлено видео</string>
+    <string name="preview_audio_incoming">Голосовое сообщение</string>
+    <string name="preview_audio_outgoing">Голосовое сообщение</string>
+    <string name="preview_file_incoming">Получен файл</string>
+    <string name="preview_file_outgoing">Отправлен файл</string>
+    <string name="preview_incoming_call">Входящий звонок</string>
+    <string name="preview_outgoing_call">Исходящий звонок</string>
+    <string name="preview_missed_call">Пропущенный звонок</string>
+
+    <!-- Экран настроек -->
+    <string name="profile_settings">Профиль</string>
+    <string name="login_name">Имя пользователя</string>
+    <string name="your_id">Ваш ID</string>
+    <string name="keys_and_identity">Ключи и ID</string>
+    <string name="generate_new_keys">Создать новые ключи</string>
+    <string name="bitcoin_address">Bitcoin адрес (DID)</string>
+    <string name="show_mnemonic">Показать фразу для восстановления</string>
+    <string name="your_mnemonic">Ваша секретная фраза</string>
+    <string name="mnemonic_warning">ВНИМАНИЕ: Запишите эти 12 слов на бумагу. Любой, у кого есть эти слова, может получить доступ к вашей личности и сообщениям. Не делитесь ими!</string>
+    <string name="import_mnemonic">Импорт по фразе</string>
+    <string name="mnemonic_placeholder">слово1 слово2 …</string>
+    <string name="import_action">Импортировать</string>
+
+    <string name="enable_ntfy">Включить ntfy</string>
+    <string name="ntfy_description">Фоновые уведомления</string>
+    <string name="privacy_settings">Конфиденциальность</string>
+    <string name="security_settings">Безопасность</string>
+    <string name="privacy_security">Приватность и Безопасность</string>
+    <string name="disable_screenshots">Запретить скриншоты</string>
+    <string name="disable_screenshots_description">Предотвращает создание скриншотов и скрывает содержимое экрана в списке запущенных приложений</string>
+    <string name="only_contacts">Только от контактов</string>
+    <string name="only_contacts_description">Принимать звонки и сообщения только от людей из списка контактов</string>
+    <string name="auto_download">Автозагрузка</string>
+    <string name="auto_download_description">Автоматически скачивать файлы в чатах</string>
+    <string name="app_lock">Защита приложения</string>
+    <string name="app_lock_description">Требовать отпечаток пальца для открытия приложения</string>
+    <string name="set_pin">Установить ПИН-код</string>
+    <string name="pin_set">ПИН-код установлен</string>
+    <string name="pin_not_set">ПИН-код не установлен</string>
+    <string name="biometric_unlock">Биометрия</string>
+    <string name="biometric_title">Биометрическая аутентификация</string>
+    <string name="biometric_subtitle">Войдите, используя биометрические данные</string>
+    <string name="biometric_negative_button">Использовать ПИН</string>
+    <string name="change_pin">Изменить ПИН-код</string>
+    <string name="pin_setup_title">Настройка ПИН-кода</string>
+    <string name="pin_setup_desc">Введите числовой код для защиты приложения.</string>
+    <string name="old_pin">Старый ПИН</string>
+    <string name="new_pin">Новый ПИН</string>
+    <string name="confirm_pin">Подтвердите новый ПИН</string>
+    <string name="error_wrong_pin">Неверный старый ПИН</string>
+    <string name="error_pin_mismatch">ПИН-коды не совпадают</string>
+    <string name="pin_hint_min_length">Минимум 4 цифры</string>
+
+    <string name="ntfy_server">Сервер ntfy</string>
+    <string name="save_server">Сохранить сервер</string>
+    <string name="default_server">По умолчанию: %1$s</string>
+    <string name="ntfy_error">Ошибка подключения к серверу! Проверьте адрес или интернет.</string>
+    <string name="language">Язык приложения</string>
+    <string name="choose_language">Выберите язык</string>
+    <string name="theme">Тема приложения</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Темная</string>
+    <string name="theme_system">Системная (по умолчанию)</string>
+    <string name="network_settings">Сетевые настройки</string>
+    <string name="ntfy_status_label">ntfy: %1$s</string>
+    <string name="vps_status_label">VPS: %1$s</string>
+
+    <string name="media_settings">Качество медиа</string>
+    <string name="photo_quality">Качество фото</string>
+    <string name="video_quality">Разрешение видео</string>
+    <string name="audio_bitrate">Битрейт аудио</string>
+    <string name="quality_low">Низкое</string>
+    <string name="quality_medium">Среднее</string>
+    <string name="quality_original">Оригинал</string>
+    <string name="bitrate_value">%1$d кбит/с</string>
+
+    <!-- Статусы ntfy -->
+    <string name="status_connected">Подключено</string>
+    <string name="status_connecting">Подключение…</string>
+    <string name="status_error">Ошибка</string>
+    <string name="status_idle">Отключено</string>
+    <string name="status_online">В сети</string>
+
+    <!-- Защита метаданных и TTL -->
+    <string name="proxy_settings_title">Защита метаданных (SOCKS5/Tor)</string>
+    <string name="enable_proxy">Включить прокси</string>
+    <string name="enable_proxy_description">Маршрутизировать трафик через Tor или SOCKS5, чтобы скрыть ваш IP-адрес</string>
+    <string name="proxy_host">Хост</string>
+    <string name="proxy_port">Порт</string>
+    <string name="message_ttl_title">Срок жизни сообщений (TTL)</string>
+    <string name="message_ttl_description">Автоматически удалять историю чата на обоих устройствах по истечении срока</string>
+    <string name="message_ttl_dialog_title">Удалять сообщения через</string>
+    <string name="ttl_disabled">Отключено</string>
+    <string name="ttl_1h">1 час</string>
+    <string name="ttl_24h">24 часа</string>
+    <string name="ttl_7d">7 дней</string>
+    <string name="ttl_30d">30 дней</string>
+
+    <!-- Главный экран / Чат -->
+    <string name="chat_menu">Меню</string>
+    <string name="clear_chat">Очистить чат</string>
+    <string name="clear_chat_confirm_title">Очистить чат?</string>
+    <string name="clear_chat_confirm_msg">Вы уверены, что хотите удалить все сообщения? Это также сотрет все зашифрованные медиафайлы этого чата.</string>
+    <string name="delete_files_on_device">Удалить экспортированные файлы из папки AtsuPager</string>
+    <string name="clear_button">Очистить</string>
+    <string name="message_placeholder">Сообщение…</string>
+    <string name="to_chat">В чат</string>
+    <string name="delete_message_title">Удалить сообщение?</string>
+    <string name="delete_message_msg">Вы уверены, что хотите удалить это сообщение? Зашифрованные медиа будут удалены безвозвратно.</string>
+    <string name="delete_selected_messages_title">Удалить сообщения?</string>
+    <string name="delete_selected_messages_msg">Вы уверены, что хотите удалить выбранные сообщения (%1$d)?</string>
+    <string name="delete_file_from_device">Удалить экспортированный файл из папки AtsuPager</string>
+    <string name="delete_for_everyone">Удалить у всех</string>
+    <string name="export_file">Экспортировать</string>
+    <string name="export_confirm_title">Экспортировать файл?</string>
+    <string name="export_confirm_msg">Файл будет расшифрован и сохранен в общедоступную папку \"AtsuPager\" в Загрузках. Оригинальная зашифрованная версия будет удалена. ВНИМАНИЕ: Этот файл больше не будет защищен шифрованием приложения AES-256.</string>
+    <string name="exporting">Экспорт…</string>
+    <string name="export_success">Файл успешно экспортирован в папку AtsuPager</string>
+    <string name="export_failed">Не удалось экспортировать файл</string>
+    <string name="clipboard_cleared">Буфер обмена очищен в целях безопасности</string>
+    <string name="selected_count">Выбрано: %1$d</string>
+
+    <!-- Медиа и файлы -->
+    <string name="attach_file">Прикрепить файл</string>
+    <string name="take_photo">Сделать фото</string>
+    <string name="capture_video">Записать видео</string>
+    <string name="record_audio">Записать аудио</string>
+    <string name="download">Скачать</string>
+    <string name="downloading">Загрузка…</string>
+    <string name="decrypting">Расшифровка…</string>
+    <string name="file_not_downloaded">Файл не загружен</string>
+    <string name="copy">Копировать</string>
+    <string name="text_copied">Текст скопирован</string>
+    <string name="open_with">Открыть с помощью</string>
+    <string name="audio_file">Аудиофайл</string>
+    <string name="pager_count">%1$d из %2$d</string>
+    <string name="download_options_title">Варианты загрузки</string>
+    <string name="download_options_msg">Выберите способ сохранения файла:</string>
+    <string name="download_to_public">Публичная папка (незащищено)</string>
+    <string name="download_to_secure">Защищенное хранилище (зашифровано)</string>
+    <string name="secure_storage_desc">Защищено AES-256</string>
+    <string name="public_access_desc">Публичный доступ</string>
+
+
+    <!-- Звонки -->
+    <string name="call">Позвонить</string>
+    <string name="video_call">Видеозвонок</string>
+    <string name="return_to_call">Вернуться к звонку</string>
+    <string name="outgoing_call">Исходящий вызов</string>
+    <string name="incoming_call">Входящий вызов</string>
+    <string name="missed_call">Пропущенный вызов</string>
+    <string name="call_ended">Звонок завершен</string>
+    <string name="connecting">Подключение…</string>
+    <string name="reconnecting">Переподключение…</string>
+    <string name="calling">Звоним…</string>
+    <string name="mic_off">Микрофон выкл</string>
+    <string name="camera_off">Камера выкл</string>
+    <string name="caller_unknown">Абонент</string>
+    <string name="call_error">Ошибка: %1$s</string>
+    <string name="hangup">Завершить</string>
+    <string name="speaker">Динамик</string>
+    <string name="earpiece">Трубка</string>
+    <string name="call_ongoing">Идет разговор…</string>
+    <string name="enable_overlay">Включить иконку</string>
+    <string name="fullscreen">Полноэкранный режим</string>
+    <string name="exit_fullscreen">Выйти из полноэкранного режима</string>
+
+    <!-- Уведомления -->
+    <string name="notification_new_msg">Новое сообщение</string>
+    <string name="notification_online">AtsuPager Онлайн</string>
+    <string name="channel_calls">Входящие звонки</string>
+    <string name="channel_missed">Пропущенные звонки</string>
+    <string name="channel_messages">Новые сообщения</string>
+    <string name="channel_service">Сервис</string>
+    <string name="channel_description">Уведомления о звонках и сообщениях AtsuPager</string>
+
+    <!-- Даты -->
+    <string name="today">Сегодня</string>
+    <string name="yesterday">Вчера</string>
+
+    <!-- Разрешения -->
+    <string name="permissions_required">Для работы приложения требуются разрешения.</string>
+    <string name="grant_permissions">Предоставить разрешения</string>
+
+    <!-- Игры -->
+    <string name="games">Игры</string>
+    <string name="chess">Шахматы</string>
+    <string name="backgammon">Нарды</string>
+    <string name="checkers">Шашки</string>
+    <string name="backgammon_long">Длинные нарды</string>
+    <string name="invite_msg">%1$s приглашает вас сыграть в %2$s. Принять приглашение?</string>
+    <string name="invite_msg_chat">приглашает вас сыграть в %2$s.</string>
+    <string name="continue_game">Продолжить игру</string>
+    <string name="play_as_white">Играть белыми</string>
+    <string name="play_as_black">Играть черными</string>
+    <string name="waiting_accept">Ожидание подтверждения от %1$s…</string>
+    <string name="coming_soon">Скоро…</string>
+    <string name="status_active">Активна</string>
+    <string name="status_saved">Сохранена</string>
+
+    <!-- Ошибки -->
+    <string name="error_decryption">⚠️ Ошибка безопасности: сообщение не расшифровано. Ключи обновлены автоматически.</string>
+    <string name="error_user_not_found">Пользователь не найден</string>
+    <string name="error_network">Ошибка сети</string>
+    <string name="error_upload_failed">Ошибка загрузки: %1$s</string>
+    <string name="error_call_signal_missing">Ошибка: сигнал вызова не получен</string>
+    <string name="error_empty_username">Пожалуйста, введите имя пользователя</string>
+    <string name="error_mnemonic_size">Фраза должна состоять ровно из 12 слов</string>
+    <string name="error_unknown">Произошла неизвестная ошибка</string>
+    <string name="error_add_self">Вы не можете добавить себя в контакты</string>
+
+    <!-- Вход -->
+    <string name="login_slogan">Нулевой след на диске • E2EE шифрование</string>
+    <string name="create_id">Создать новый ID</string>
+    <string name="login_subtitle">Ваш приватный ключ — это ваш единственный аккаунт</string>
+    <string name="username_label">Имя пользователя</string>
+    <string name="username_hint">Введите имя или никнейм</string>
+    <string name="generate_id_action">Создать ID</string>
+    <string name="import_phrase_action">Войти по фразе</string>
+    <string name="how_seen_others">Как вас будут видеть другие?</string>
+    <string name="enter_secret_phrase">Введите вашу секретную фразу</string>
+    <string name="backup_mnemonic_title">Сохраните секретную фразу</string>
+    <string name="backup_mnemonic_desc">Запишите эти 12 слов. Если вы их потеряете или смените телефон, вы навсегда потеряете доступ к своему аккаунту.</string>
+    <string name="i_saved_it">Я сохранил фразу</string>
+    <string name="identity_ready_title">Личность готова</string>
+    <string name="identity_ready_subtitle">Это ваш уникальный адрес. Поделитесь им с друзьями, чтобы они могли вас найти.</string>
+    <string name="share_id_text">Привет! Добавь меня в AtsuPager. Мой ID:\n\n%1$s</string>
+    <string name="share_action">Поделиться ID</string>
+    <string name="get_started">Начать работу</string>
+    <string name="identity_hint_settings">Вы всегда можете найти свой ID в Настройках.</string>
+    <string name="feature_no_servers">Без серверов</string>
+    <string name="feature_e2ee">E2EE</string>
+    <string name="feature_zero_disk">Следов нет</string>
+
+    <string name="login">Вход</string>
+    <string name="password">Пароль</string>
+    <string name="sign_in">Войти</string>
+    <string name="login_error">Неверный логин или пароль</string>
+
+    <!-- Специфика Шахмат / Нард / Шашек -->
+    <string name="chess_white_win">БЕЛЫЕ ПОБЕДИЛИ (ШАХ И МАТ)</string>
+    <string name="chess_black_win">ЧЕРНЫЕ ПОБЕДИЛИ (ШАХ И МАТ)</string>
+    <string name="chess_draw">НИЧЬЯ (ПАТ)</string>
+    <string name="chess_check">ШАХ! </string>
+    <string name="chess_your_turn">ВАШ ХОД</string>
+    <string name="chess_waiting_turn">ОЖИДАНИЕ ХОДА…</string>
+    <string name="chess_select_piece">Выберите фигуру</string>
+    <string name="checkers_white_win">БЕЛЫЕ ПОБЕДИЛИ!</string>
+    <string name="checkers_black_win">ЧЕРНЫЕ ПОБЕДИЛИ!</string>
+    <string name="roll_dice">Бросить кубики</string>
+    <string name="bg_win">ПОБЕДИТЕЛЬ: %1$s</string>
+    <string name="bg_white">БЕЛЫЕ</string>
+    <string name="bg_black">ЧЕРНЫЕ</string>
+    <string name="bg_home">ДОМ</string>
+    <string name="bg_your_turn">ВАШ ХОД</string>
+    <string name="bg_his_turn">ХОД ПРОТИВНИКА</string>
+
+    <string name="select_text">Выделить часть</string>
+
+    <string name="export_contacts">Экспорт контактов</string>
+    <string name="import_contacts">Импорт контактов</string>
+    <string name="contacts_export_method">Выберите метод шифрования для файла бэкапа.</string>
+    <string name="contacts_backup_mnemonic">Мнемоническая фраза</string>
+    <string name="contacts_backup_mnemonic_desc">Файл будет доступен только для этого аккаунта</string>
+    <string name="contacts_backup_password">Пользовательский пароль</string>
+    <string name="contacts_backup_password_desc">Файл можно будет импортировать на любом устройстве</string>
+    <string name="contacts_backup_password_placeholder">Придумайте пароль</string>
+    <string name="contacts_import_password_title">Требуется пароль</string>
+    <string name="contacts_import_password_msg">Этот файл зашифрован паролем. Введите его для импорта контактов.</string>
+    <string name="contacts_import_password_placeholder">Введите пароль</string>
+    <string name="contacts_error_file_open">Не удалось открыть файл</string>
+    <string name="contacts_export_success">Контакты успешно экспортированы</string>
+    <string name="contacts_export_failed">Ошибка экспорта</string>
+    <string name="contacts_import_success">Контакты успешно импортированы</string>
+    <string name="contacts_import_error_data">Ошибка импорта: неверный пароль или данные</string>
+    <string name="contacts_import_error_mnemonic">Ошибка импорта: несовпадение мнемоники</string>
+
+    <string name="settings_clipboard_title">Очистка буфера обмена</string>
+    <string name="settings_clipboard_description">Автоматически удалять скопированный текст через время</string>
+    <string name="settings_clipboard_30s">30 секунд</string>
+    <string name="settings_clipboard_1m">1 минута</string>
+    <string name="settings_clipboard_5m">5 минут</string>
+    <string name="settings_clipboard_never">Никогда</string>
+
+    <string name="chat">Чат</string>
+
+    <!-- Настройки шрифта -->
+    <string name="settings_font_title">Шрифт приложения</string>
+    <string name="settings_font_system">Системный (по умолчанию)</string>
+    <string name="settings_font_inter">Inter</string>
+    <string name="settings_font_manrope">Manrope</string>
+    <string name="settings_font_jetbrains">JetBrains Mono</string>
+
+    <string name="rename">Переименовать</string>
+    <string name="rename_contact">Переименовать контакт</string>
+    <string name="contact_name">Имя контакта</string>
+    <string name="bulk_delete_contact_single">Вы уверены, что хотите удалить этот контакт и всю историю?</string>
+    <string name="bulk_delete_contact_multiple">Удалить выбранные контакты (%1$d) и историю переписки?</string>
+    <string name="bulk_delete_chat_single">Полностью очистить этот чат?</string>
+    <string name="bulk_delete_chat_multiple">Полностью очистить выбранные чаты (%1$d)?</string>
+    <string name="error_name_required">Для этого контакта требуется имя</string>
+
+    <string name="tab_contacts_history">Контакты (История)</string>
+    <string name="chat_is_empty">Чат пуст</string>
+    <string name="clear_history_only">Очистить только историю</string>
+    <string name="delete_all_confirm">Удалить контакт И историю</string>
+    <string name="delete_contact_action">Удалить контакт</string>
+
+    <string name="forward_to">Переслать…</string>
+
+    <string name="create_profile">Создать профиль</string>
+    <string name="profile_ready">Ваш профиль готов</string>
+    <string name="username_nickname">Имя пользователя (никнейм)</string>
+
+    <string name="read_receipts">Подтверждения прочтения</string>
+    <string name="read_receipts_desc">Отправка и получение уведомлений о прочтении</string>
+
+    <string name="import_id">Импорт ID (12 слов)</string>
+    <string name="import_profile">Импорт ID (12 слов)</string>
+    <string name="empty_value_placeholder">—</string>
+    <string name="clipboard_label_id">AtsuID</string>
+    <string name="ntfy_placeholder">https://ntfy.sh</string>
+    <string name="qr_code_description">QR-код</string>
+
+    <!-- Server Access & Subscription -->
+    <string name="access_settings">Доступ к серверу</string>
+    <string name="access_status_label">Статус: %1$s</string>
+    <string name="access_status_active">Активен</string>
+    <string name="access_status_expired">Неактивен / Требуется</string>
+    <string name="access_expires_label">Истекает: %1$s</string>
+    <string name="access_expiry_never">Бессрочно</string>
+    <string name="activate_access">Активировать доступ</string>
+    <string name="enter_code_hint">Введите 16-значный код</string>
+    <string name="buy_code_info">Для сохранения анонимности мы используем коды доступа. Получить код можно через наш портал или бот.</string>
+    <string name="apply_code">Применить код</string>
+    <string name="invalid_code">Неверный код или истек срок действия</string>
+    <string name="code_activated">Доступ успешно активирован!</string>
+
+</resources>

@@ -1,0 +1,315 @@
+<resources>
+    <string name="app_name">AtsuPager</string>
+    <string name="widget_description">Affiche les cours crypto et le statut des appels</string>
+    <string name="audio_playback_attribution">Lecture audio de l\'appel</string>
+
+    <!-- Général -->
+    <string name="back">Retour</string>
+    <string name="cancel">Annuler</string>
+    <string name="delete">Supprimer</string>
+    <string name="loading">Chargement…</string>
+    <string name="error">Erreur</string>
+    <string name="send">Envoyer</string>
+    <string name="stop">Arrêter</string>
+    <string name="pause">Pause</string>
+    <string name="play">Lire</string>
+    <string name="accept">Accepter</string>
+    <string name="reject">Refuser</string>
+    <string name="add">Ajouter</string>
+    <string name="save">Enregistrer</string>
+    <string name="search">Rechercher</string>
+    <string name="refresh">Actualiser</string>
+    <string name="white">Blanc</string>
+    <string name="black">Noir</string>
+    <string name="retry">Réessayer</string>
+    <string name="system_default">Système par défaut</string>
+    <string name="close">Fermer</string>
+
+    <!-- Navigation / Onglets -->
+    <string name="tab_chats">Historique</string>
+    <string name="tab_contacts">Contacts</string>
+    <string name="tab_settings">Paramètres</string>
+
+    <!-- Écran Contacts -->
+    <string name="search_chats">Rechercher des discussions</string>
+    <string name="search_contacts">Rechercher des contacts</string>
+    <string name="add_contact">Ajouter un contact</string>
+    <string name="add_contact_title">Ajouter le contact ?</string>
+    <string name="add_contact_msg">Ajouter %1$s à votre liste de contacts ?</string>
+    <string name="delete_contact_title">Supprimer le contact ?</string>
+    <string name="delete_contact_msg">L\'historique des discussions avec %1$s sera également supprimé.</string>
+    <string name="username_placeholder">Nom d\'utilisateur</string>
+    <string name="no_chats">L’historique des discussions est vide</string>
+    <string name="no_chats_found">Aucune discussion trouvée</string>
+    <string name="no_contacts">La liste de contacts est brute</string>
+    <string name="no_contacts_found">Aucun résultat</string>
+
+    <!-- Aperçus de messages -->
+    <string name="preview_text_incoming">Message entrant</string>
+    <string name="preview_text_outgoing">Message sortant</string>
+    <string name="preview_image_incoming">Photo reçue</string>
+    <string name="preview_image_outgoing">Photo envoyée</string>
+    <string name="preview_video_incoming">Vidéo reçue</string>
+    <string name="preview_video_outgoing">Vidéo envoyée</string>
+    <string name="preview_audio_incoming">Message vocal reçu</string>
+    <string name="preview_audio_outgoing">Message vocal envoyé</string>
+    <string name="preview_file_incoming">Fichier reçu</string>
+    <string name="preview_file_outgoing">Fichier envoyé</string>
+    <string name="preview_incoming_call">Appel entrant</string>
+    <string name="preview_outgoing_call">Appel sortant</string>
+    <string name="preview_missed_call">Appel manqué</string>
+
+    <!-- Écran Paramètres -->
+    <string name="profile_settings">Profil</string>
+    <string name="login_name">Nom d\'utilisateur</string>
+    <string name="your_id">Votre identité</string>
+    <string name="keys_and_identity">Clés et identité</string>
+    <string name="generate_new_keys">Générer de nouvelles clés</string>
+    <string name="bitcoin_address">Adresse Bitcoin (DID)</string>
+    <string name="show_mnemonic">Afficher la phrase de récupération</string>
+    <string name="your_mnemonic">Votre phrase de récupération</string>
+    <string name="mnemonic_warning">AVERTISSEMENT : Écrivez ces 12 mots sur papier. Quiconque possède ces mots peut accéder à votre identité et à vos messages. Ne les partagez pas !</string>
+    <string name="import_mnemonic">Importer depuis une phrase</string>
+    <string name="mnemonic_placeholder">mot1 mot2 …</string>
+    <string name="import_action">Importer</string>
+
+    <string name="enable_ntfy">Activer ntfy</string>
+    <string name="ntfy_description">Notifications en arrière-plan</string>
+    <string name="privacy_settings">Confidentialité</string>
+    <string name="security_settings">Sécurité</string>
+    <string name="privacy_security">Confidentialité et sécurité</string>
+    <string name="disable_screenshots">Désactiver les captures d\'écran</string>
+    <string name="disable_screenshots_description">Empêcher les captures d\'écran et masquer le contenu de l\'écran dans les applications récentes</string>
+    <string name="only_contacts">Uniquement les contacts</string>
+    <string name="only_contacts_description">Accepter les appels et messages uniquement de la liste de contacts</string>
+    <string name="auto_download">Téléchargement automatique</string>
+    <string name="auto_download_description">Télécharger automatiquement les fichiers dans les discussions</string>
+    <string name="app_lock">Verrouillage de l\'app</string>
+    <string name="app_lock_description">Exiger l\'empreinte digitale pour ouvrir l\'application</string>
+    <string name="set_pin">Définir le code PIN</string>
+    <string name="pin_set">Le code PIN est défini</string>
+    <string name="pin_not_set">Code PIN non défini</string>
+    <string name="change_pin">Modifier le code PIN</string>
+    <string name="pin_setup_title">Configuration du PIN</string>
+    <string name="pin_setup_desc">Entrez un code numérique pour protéger l\'application.</string>
+    <string name="ntfy_server">Serveur ntfy</string>
+    <string name="save_server">Enregistrer le serveur</string>
+    <string name="default_server">Par défaut : %1$s</string>
+    <string name="ntfy_error">Erreur de connexion au serveur ! Vérifiez l\'adresse ou internet.</string>
+    <string name="language">Langue de l\'application</string>
+    <string name="choose_language">Choisir la langue</string>
+    <string name="theme">Thème de l\'application</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="theme_system">Système par défaut</string>
+    <string name="network_settings">Paramètres réseau</string>
+    <string name="ntfy_status_label">ntfy : %1$s</string>
+    <string name="vps_status_label">VPS : %1$s</string>
+
+    <!-- Protection des métadonnées et TTL -->
+    <string name="proxy_settings_title">Protection des métadonnées (SOCKS5/Tor)</string>
+    <string name="enable_proxy">Activer le proxy</string>
+    <string name="enable_proxy_description">Acheminer le trafic via Tor ou SOCKS5 pour masquer votre adresse IP</string>
+    <string name="proxy_host">Hôte</string>
+    <string name="proxy_port">Port</string>
+    <string name="message_ttl_title">Cycle de vie des messages (TTL)</string>
+    <string name="message_ttl_description">Effacer automatiquement l\'historique des discussions sur les deux appareils après la période définie</string>
+    <string name="message_ttl_dialog_title">Supprimer les messages après</string>
+    <string name="ttl_disabled">Désactivé</string>
+    <string name="ttl_1h">1 heure</string>
+    <string name="ttl_24h">24 heures</string>
+    <string name="ttl_7d">7 jours</string>
+    <string name="ttl_30d">30 jours</string>
+
+    <!-- Biometric -->
+    <string name="biometric_title">Authentification biométrique</string>
+    <string name="biometric_subtitle">Connectez-vous à l\'aide de vos identifiants biométriques</string>
+    <string name="biometric_negative_button">Utiliser le PIN</string>
+    <string name="biometric_unlock">Déverrouillage biométrique</string>
+
+    <!-- Statut ntfy -->
+    <string name="status_connected">Connecté</string>
+    <string name="status_connecting">Connexion…</string>
+    <string name="status_error">Erreur</string>
+    <string name="status_idle">Déconnecté</string>
+
+    <!-- Écran Principal / Chat -->
+    <string name="chat_menu">Menu</string>
+    <string name="clear_chat">Effacer le chat</string>
+    <string name="clear_chat_confirm_title">Effacer le chat ?</string>
+    <string name="clear_chat_confirm_msg">Êtes-vous sûr de vouloir supprimer tous les messages ? Cela effacera également tous les médias cryptés pour ce chat.</string>
+    <string name="delete_files_on_device">Supprimer les fichiers exportés du dossier AtsuPager</string>
+    <string name="clear_button">Effacer</string>
+    <string name="message_placeholder">Message…</string>
+    <string name="to_chat">Au chat</string>
+    <string name="delete_message_title">Supprimer le message ?</string>
+    <string name="delete_message_msg">Êtes-vous sûr de vouloir supprimer ce message ? Les médias cryptés seront effacés définitivement.</string>
+    <string name="delete_file_from_device">Supprimer le fichier exporté du dossier AtsuPager</string>
+    <string name="export_file">Exporter</string>
+    <string name="export_confirm_title">Exporter le fichier ?</string>
+    <string name="export_confirm_msg">Le fichier sera déchiffré et enregistré dans le dossier public \"AtsuPager\" dans Téléchargements. L\'original crypté sera supprimé. AVERTISSEMENT : Ce fichier ne sera plus protégé par le cryptage AES-256 de l\'application.</string>
+    <string name="exporting">Exportation…</string>
+    <string name="export_success">Fichier exporté avec succès vers le dossier AtsuPager</string>
+    <string name="export_failed">Échec de l\'exportation du fichier</string>
+    <string name="clipboard_cleared">Presse-papiers effacé par sécurité</string>
+
+    <!-- Appels -->
+    <string name="call">Appeler</string>
+    <string name="video_call">Appel vidéo</string>
+    <string name="return_to_call">Retour à l\'appel</string>
+    <string name="outgoing_call">Appel sortant</string>
+    <string name="incoming_call">Appel entrant</string>
+    <string name="missed_call">Appel manqué</string>
+    <string name="call_ended">Appel terminé</string>
+    <string name="connecting">Connexion…</string>
+    <string name="reconnecting">Reconnexion…</string>
+    <string name="calling">Appel en cours…</string>
+    <string name="mic_off">Micro désactivé</string>
+    <string name="camera_off">Caméra désactivée</string>
+    <string name="caller_unknown">Abonné</string>
+    <string name="call_error">Erreur : %1$s</string>
+    <string name="hangup">Terminer</string>
+    <string name="speaker">Haut-parleur</string>
+    <string name="earpiece">Écouteur</string>
+    <string name="call_ongoing">Appel en cours…</string>
+    <string name="enable_overlay">Activer l\'icône</string>
+
+    <!-- Onboarding / Login -->
+    <string name="error_empty_username">Veuillez entrer un nom d\'utilisateur</string>
+    <string name="error_mnemonic_size">La phrase doit contenir exactement 12 mots</string>
+    <string name="error_unknown">Une erreur inconnue est survenue</string>
+    <string name="feature_no_servers">Pas de serveurs</string>
+    <string name="feature_e2ee">Chiffrement E2EE</string>
+    <string name="feature_zero_disk">Zéro trace</string>
+    <string name="identity_ready_title">Identité prête</string>
+    <string name="identity_ready_subtitle">C\'est votre adresse unique. Partagez-la avec vos amis pour qu\'ils puissent vous trouver.</string>
+    <string name="share_id_text">Salut ! Ajoute-moi sur AtsuPager. Mon ID est :\n\n%1$s</string>
+    <string name="share_action">Partager l\'ID</string>
+    <string name="get_started">Commencer</string>
+    <string name="identity_hint_settings">Vous pouvez toujours trouver votre ID et votre code QR dans les Paramètres.</string>
+
+    <string name="games">Jeux</string>
+    <string name="chess">Échecs</string>
+    <string name="backgammon">Backgammon</string>
+    <string name="checkers">Dames</string>
+    <string name="backgammon_long">Backgammon long</string>
+    <string name="invite_msg">%1$s vous invite à jouer à %2$s. Accepter l\'invitation ?</string>
+    <string name="invite_msg_chat">vous invite à jouer à %2$s.</string>
+    <string name="continue_game">Continuer la partie</string>
+    <string name="play_as_white">Jouer avec les blancs</string>
+    <string name="play_as_black">Jouer avec les noirs</string>
+    <string name="waiting_accept">En attente de la confirmation de %1$s…</string>
+    <string name="coming_soon">Bientôt disponible…</string>
+    <string name="status_active">Active</string>
+    <string name="status_saved">Enregistrée</string>
+
+    <!-- Chess / Backgammon / Checkers specifics -->
+    <string name="chess_white_win">LES BLANCS GAGNENT (ÉCHEC ET MAT)</string>
+    <string name="chess_black_win">LES NOIRS GAGNENT (ÉCHEC ET MAT)</string>
+    <string name="chess_draw">MATCH NUL (PAT)</string>
+    <string name="chess_check">ÉCHEC !</string>
+    <string name="chess_your_turn">À VOUS DE JOUER</string>
+    <string name="chess_waiting_turn">EN ATTENTE DU COUP…</string>
+    <string name="chess_select_piece">Sélectionnez une pièce</string>
+    <string name="checkers_white_win">LES BLANCS GAGNENT !</string>
+    <string name="checkers_black_win">LES NOIRS GAGNENT !</string>
+    <string name="roll_dice">Lancer les dés</string>
+    <string name="bg_win">GAGNANT : %1$s</string>
+    <string name="bg_white">BLANC</string>
+    <string name="bg_black">NOIR</string>
+    <string name="bg_home">MAISON</string>
+    <string name="bg_your_turn">À VOUS DE JOUER</string>
+    <string name="bg_his_turn">À SON TOUR</string>
+
+
+    <string name="select_text">Sélectionner une partie</string>
+
+    <string name="download_options_title">Options de téléchargement</string>
+    <string name="download_options_msg">Choisissez comment vous souhaitez enregistrer le fichier :</string>
+    <string name="download_to_public">Dossier public</string>
+    <string name="download_to_secure">Stockage sécurisé</string>
+    <string name="secure_storage_desc">Protégé par AES-256</string>
+    <string name="public_access_desc">Accès public</string>
+
+    <string name="export_contacts">Exporter les contacts</string>
+    <string name="import_contacts">Importer les contacts</string>
+    <string name="contacts_export_method">Choisissez la méthode de chiffrement pour le fichier de sauvegarde.</string>
+    <string name="contacts_backup_mnemonic">Phrase mnémonique</string>
+    <string name="contacts_backup_mnemonic_desc">Le fichier sera accessible uniquement pour ce compte</string>
+    <string name="contacts_backup_password">Mot de passe personnalisé</string>
+    <string name="contacts_backup_password_desc">Le fichier peut être importé sur n\'importe quel appareil</string>
+    <string name="contacts_backup_password_placeholder">Créer un mot de passe</string>
+    <string name="contacts_import_password_title">Mot de passe requis</string>
+    <string name="contacts_import_password_msg">Ce fichier est chiffré par un mot de passe. Entrez-le pour importer des contacts.</string>
+    <string name="contacts_import_password_placeholder">Entrer le mot de passe</string>
+    <string name="contacts_error_file_open">Échec de l\'ouverture du fichier</string>
+    <string name="contacts_export_success">Contacts exportés avec succès</string>
+    <string name="contacts_export_failed">Échec de l\'exportation</string>
+    <string name="contacts_import_success">Contacts importés avec succès</string>
+    <string name="contacts_import_error_data">Échec de l\'importation : mot de passe ou données invalides</string>
+    <string name="contacts_import_error_mnemonic">Échec de l\'importation : mnémonique incorrecte</string>
+
+    <string name="text_copied">Texte copié</string>
+    <string name="settings_clipboard_title">Effacer le presse-papiers</string>
+    <string name="settings_clipboard_description">Effacer automatiquement le texte après un délai</string>
+    <string name="settings_clipboard_30s">30 secondes</string>
+    <string name="settings_clipboard_1m">1 minute</string>
+    <string name="settings_clipboard_5m">5 minutes</string>
+    <string name="settings_clipboard_never">Jamais</string>
+
+    <string name="chat">Chat</string>
+
+    <!-- Paramètres de police -->
+    <string name="settings_font_title">Police de l\'application</string>
+    <string name="settings_font_system">Système (par défaut)</string>
+    <string name="settings_font_inter">Inter</string>
+    <string name="settings_font_manrope">Manrope</string>
+    <string name="settings_font_jetbrains">JetBrains Mono</string>
+
+    <string name="rename">Renommer</string>
+    <string name="rename_contact">Renommer le contact</string>
+    <string name="contact_name">Nom du contact</string>
+
+    <string name="bulk_delete_contact_single">Êtes-vous sûr de vouloir supprimer ce contact et tout l\'historique ?</string>
+    <string name="bulk_delete_contact_multiple">Supprimer les contacts sélectionnés (%1$d) et l\'historique des chats ?</string>
+    <string name="bulk_delete_chat_single">Effacer complètement ce chat ?</string>
+    <string name="bulk_delete_chat_multiple">Effacer complètement les chats sélectionnés (%1$d) ?</string>
+    <string name="error_name_required">Le nom est requis pour ce contact</string>
+
+    <string name="tab_contacts_history">Contacts (Historique)</string>
+    <string name="chat_is_empty">Le chat est vide</string>
+    <string name="clear_history_only">Effacer seulement l\'historique</string>
+    <string name="delete_all_confirm">Supprimer le contact ET l\'historique</string>
+    <string name="delete_contact_action">Supprimer le contact</string>
+
+    <string name="forward_to">Transférer à…</string>
+
+    <string name="delete_for_everyone">Supprimer pour tout le monde</string>
+
+    <string name="read_receipts">Confirmations de lecture</string>
+    <string name="read_receipts_desc">Envoyer et recevoir des confirmations de lecture</string>
+
+    <string name="import_id">Importer ID (12 mots)</string>
+    <string name="import_profile">Importer ID (12 mots)</string>
+    <string name="empty_value_placeholder">—</string>
+    <string name="clipboard_label_id">AtsuID</string>
+    <string name="ntfy_placeholder">https://ntfy.sh</string>
+    <string name="qr_code_description">Code QR</string>
+
+    <string name="create_id">Créer un nouvel ID</string>
+
+    <!-- Server Access & Subscription -->
+    <string name="access_settings">Accès au serveur</string>
+    <string name="access_status_label">Statut : %1$s</string>
+    <string name="access_status_active">Actif</string>
+    <string name="access_status_expired">Inactif / Requis</string>
+    <string name="access_expires_label">Expire le : %1$s</string>
+    <string name="access_expiry_never">N\'expire jamais</string>
+    <string name="activate_access">Activer l\'accès</string>
+    <string name="enter_code_hint">Entrez le code d\'accès à 16 chiffres</string>
+    <string name="buy_code_info">Pour préserver la confidentialité de votre identité, nous utilisons des codes d\'accès anonymes. Vous pouvez en obtenir un via notre portail officiel ou notre bot.</string>
+    <string name="apply_code">Appliquer le code</string>
+    <string name="invalid_code">Code invalide ou expiré</string>
+    <string name="code_activated">Accès activé avec succès !</string>
+
+</resources>

@@ -1,0 +1,273 @@
+<resources>
+    <string name="app_name">AtsuPager</string>
+    <string name="widget_description">Zeigt Kryptokurse und Anrufstatus an</string>
+    <string name="audio_playback_attribution">Anrufaudio-Wiedergabe</string>
+
+    <!-- Allgemein -->
+    <string name="back">Zurück</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="delete">Löschen</string>
+    <string name="loading">Laden…</string>
+    <string name="error">Fehler</string>
+    <string name="send">Senden</string>
+    <string name="stop">Stopp</string>
+    <string name="pause">Pause</string>
+    <string name="play">Abspielen</string>
+    <string name="accept">Annehmen</string>
+    <string name="reject">Ablehnen</string>
+    <string name="add">Hinzufügen</string>
+    <string name="save">Speichern</string>
+    <string name="search">Suche</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="white">Weiß</string>
+    <string name="black">Schwarz</string>
+    <string name="retry">Wiederholen</string>
+    <string name="system_default">Systemstandard</string>
+    <string name="close">Schließen</string>
+
+    <!-- Nachrichtenvorschau -->
+    <string name="preview_text_incoming">Eingehende Nachricht</string>
+    <string name="preview_text_outgoing">Ausgehende Nachricht</string>
+    <string name="preview_image_incoming">Empfangenes Foto</string>
+    <string name="preview_image_outgoing">Gesendetes Foto</string>
+    <string name="preview_video_incoming">Empfangenes Video</string>
+    <string name="preview_video_outgoing">Gesendetes Video</string>
+    <string name="preview_audio_incoming">Empfangene Sprachnachricht</string>
+    <string name="preview_audio_outgoing">Gesendete Sprachnachricht</string>
+    <string name="preview_file_incoming">Empfangene Datei</string>
+    <string name="preview_file_outgoing">Gesendete Datei</string>
+    <string name="preview_incoming_call">Eingehender Anruf</string>
+    <string name="preview_outgoing_call">Ausgehender Anruf</string>
+    <string name="preview_missed_call">Verpasster Anruf</string>
+
+    <!-- Einstellungsbildschirm -->
+    <string name="profile_settings">Profil</string>
+    <string name="login_name">Benutzername</string>
+    <string name="your_id">Ihre Identität</string>
+    <string name="keys_and_identity">Schlüssel &amp; Identität</string>
+    <string name="generate_new_keys">Neue Schlüssel generieren</string>
+    <string name="bitcoin_address">Bitcoin-Adresse (DID)</string>
+    <string name="show_mnemonic">Wiederherstellungsphrase anzeigen</string>
+    <string name="your_mnemonic">Ihre Wiederherstellungsphrase</string>
+    <string name="mnemonic_warning">WARNUNG: Schreiben Sie diese 12 Wörter auf Papier auf. Jeder, der diese Wörter hat, kann auf Ihre Identität und Nachrichten zugreifen. Teilen Sie sie nicht!</string>
+    <string name="import_mnemonic">Aus Phrase importieren</string>
+    <string name="mnemonic_placeholder">Wort1 Wort2 …</string>
+    <string name="import_action">Importieren</string>
+
+    <string name="enable_ntfy">ntfy aktivieren</string>
+    <string name="ntfy_description">Hintergrundbenachrichtigungen</string>
+    <string name="privacy_settings">Datenschutz</string>
+    <string name="security_settings">Sicherheit</string>
+    <string name="privacy_security">Privatsphäre &amp; Sicherheit</string>
+    <string name="disable_screenshots">Screenshots deaktivieren</string>
+    <string name="disable_screenshots_description">Screenshots verhindern und Bildschirminhalt in der Liste der letzten Apps ausblenden</string>
+    <string name="only_contacts">Nur von Kontakten</string>
+    <string name="only_contacts_description">Anrufe und Nachrichten nur von Kontakten annehmen</string>
+    <string name="auto_download">Automatischer Download</string>
+    <string name="auto_download_description">Dateien in Chats automatisch herunterladen</string>
+    <string name="app_lock">App-Sperre</string>
+    <string name="app_lock_description">Fingerabdruck zum Öffnen der App anfordern</string>
+    <string name="set_pin">PIN festlegen</string>
+    <string name="pin_set">PIN ist festgelegt</string>
+    <string name="pin_not_set">PIN nicht festgelegt</string>
+    <string name="change_pin">PIN ändern</string>
+    <string name="pin_setup_title">PIN-Einrichtung</string>
+    <string name="pin_setup_desc">Geben Sie einen numerischen Code ein, um die Anwendung zu schützen.</string>
+    <string name="ntfy_server">ntfy Server</string>
+    <string name="save_server">Server speichern</string>
+    <string name="default_server">Standard: %1$s</string>
+    <string name="ntfy_error">Serververbindungsfehler! Adresse oder Internet prüfen.</string>
+    <string name="language">App-Sprache</string>
+    <string name="choose_language">Sprache wählen</string>
+    <string name="theme">App-Design</string>
+    <string name="theme_light">Hell</string>
+    <string name="theme_dark">Dunkel</string>
+    <string name="theme_system">Systemstandard</string>
+    <string name="network_settings">Netzwerkeinstellungen</string>
+    <string name="ntfy_status_label">ntfy: %1$s</string>
+    <string name="vps_status_label">VPS: %1$s</string>
+
+    <!-- Metadatenschutz & TTL -->
+    <string name="proxy_settings_title">Metadatenschutz (SOCKS5/Tor)</string>
+    <string name="enable_proxy">Proxy aktivieren</string>
+    <string name="enable_proxy_description">Leitet den Datenverkehr über Tor oder SOCKS5, um Ihre IP-Adresse zu verbergen</string>
+    <string name="proxy_host">Host</string>
+    <string name="proxy_port">Port</string>
+    <string name="message_ttl_title">Nachrichten-Lebenszyklus (TTL)</string>
+    <string name="message_ttl_description">Chat-Verlauf auf beiden Geräten nach Ablauf der Frist automatisch löschen</string>
+    <string name="message_ttl_dialog_title">Nachrichten automatisch löschen nach</string>
+    <string name="ttl_disabled">Deaktiviert</string>
+    <string name="ttl_1h">1 Stunde</string>
+    <string name="ttl_24h">24 Stunden</string>
+    <string name="ttl_7d">7 Tage</string>
+    <string name="ttl_30d">30 Tage</string>
+
+    <!-- Biometric -->
+    <string name="biometric_title">Biometrische Authentifizierung</string>
+    <string name="biometric_subtitle">Melden Sie sich mit Ihren biometrischen Daten an</string>
+    <string name="biometric_negative_button">PIN verwenden</string>
+    <string name="biometric_unlock">Biometrische Entsperrung</string>
+
+    <!-- ntfy Status -->
+    <string name="status_connected">Verbunden</string>
+    <string name="status_connecting">Verbindung wird hergestellt…</string>
+    <string name="status_error">Fehler</string>
+    <string name="status_idle">Getrennt</string>
+    <string name="status_online">Online</string>
+
+    <!-- Hauptbildschirm / Chat -->
+    <string name="export_file">Exportieren</string>
+    <string name="exporting">Exportieren…</string>
+    <string name="export_success">Datei erfolgreich exportiert</string>
+    <string name="export_failed">Fehler beim Exportieren</string>
+    <string name="downloading">Wird geladen…</string>
+    <string name="decrypting">Entschlüsseln…</string>
+
+    <!-- Anrufe -->
+    <string name="incoming_call">Eingehender Anruf</string>
+    <string name="missed_call">Verpasster Anruf</string>
+    <string name="hangup">Beenden</string>
+
+    <!-- Onboarding / Login -->
+    <string name="error_empty_username">Bitte Benutzernamen eingeben</string>
+    <string name="error_mnemonic_size">Die Phrase muss genau 12 Wörter enthalten</string>
+    <string name="error_unknown">Ein unbekannter Fehler ist aufgetreten</string>
+    <string name="feature_no_servers">Keine Server</string>
+    <string name="feature_e2ee">E2EE-Verschlüsselung</string>
+    <string name="feature_zero_disk">Keine Spuren</string>
+    <string name="identity_ready_title">Identität bereit</string>
+    <string name="identity_ready_subtitle">Dies ist Ihre einzigartige Adresse. Teilen Sie sie mit Freunden, damit sie Sie finden können.</string>
+    <string name="share_id_text">Hallo! Füge mich auf AtsuPager hinzu. Meine ID ist:\n\n%1$s</string>
+    <string name="share_action">ID teilen</string>
+    <string name="get_started">Loslegen</string>
+    <string name="identity_hint_settings">Sie finden Ihre ID und den QR-Code jederzeit in den Einstellungen.</string>
+
+    <!-- Games -->
+    <string name="games">Spiele</string>
+    <string name="chess">Schach</string>
+    <string name="backgammon">Backgammon</string>
+    <string name="checkers">Dame</string>
+    <string name="backgammon_long">Langes Backgammon</string>
+    <string name="invite_msg">%1$s lädt dich ein, %2$s zu spielen. Einladung annehmen?</string>
+    <string name="invite_msg_chat">lädt dich ein, %2$s zu spielen.</string>
+    <string name="continue_game">Spiel fortsetzen</string>
+    <string name="play_as_white">Als Weiß spielen</string>
+    <string name="play_as_black">Als Schwarz spielen</string>
+    <string name="waiting_accept">Warten auf Bestätigung von %1$s…</string>
+    <string name="coming_soon">Demnächst…</string>
+    <string name="status_active">Aktiv</string>
+    <string name="status_saved">Gespeichert</string>
+
+    <!-- Chess / Backgammon / Checkers specifics -->
+    <string name="chess_white_win">WEISS GEWINNT (SCHACHMATT)</string>
+    <string name="chess_black_win">SCHWARZ GEWINNT (SCHACHMATT)</string>
+    <string name="chess_draw">REMIS (PATT)</string>
+    <string name="chess_check">SCHACH!</string>
+    <string name="chess_your_turn">DU BIST DRAN</string>
+    <string name="chess_waiting_turn">WARTE AUF ZUG…</string>
+    <string name="chess_select_piece">Figur wählen</string>
+    <string name="checkers_white_win">WEISS GEWINNT!</string>
+    <string name="checkers_black_win">SCHWARZ GEWINNT!</string>
+    <string name="roll_dice">Würfeln</string>
+    <string name="bg_win">GEWINNER: %1$s</string>
+    <string name="bg_white">WEISS</string>
+    <string name="bg_black">SCHWARZ</string>
+    <string name="bg_home">HOME</string>
+    <string name="bg_your_turn">DU BIST DRAN</string>
+    <string name="bg_his_turn">GEGNER IST DRAN</string>
+
+
+    <string name="select_text">Teil auswählen</string>
+
+    <string name="tab_chats">Verlauf</string>
+    <string name="no_chats">Chatverlauf ist leer</string>
+
+    <string name="download_options_title">Download-Optionen</string>
+    <string name="download_options_msg">Wählen Sie, wie Sie die Datei speichern möchten:</string>
+    <string name="download_to_public">Öffentlicher Ordner</string>
+    <string name="download_to_secure">Sicherer Speicher</string>
+    <string name="secure_storage_desc">Geschützt durch AES-256</string>
+    <string name="public_access_desc">Öffentlicher Zugriff</string>
+    <string name="export_confirm_title">Datei exportieren?</string>
+    <string name="export_confirm_msg">Die Datei wird entschlüsselt und im öffentlichen Ordner \"AtsuPager\" unter Downloads gespeichert. Die ursprüngliche verschlüsselte Version wird gelöscht. WARNUNG: Diese Datei wird nicht mehr durch die AES-256-Verschlüsselung der App geschützt.</string>
+
+    <string name="export_contacts">Kontakte exportieren</string>
+    <string name="import_contacts">Kontakte importieren</string>
+    <string name="contacts_export_method">Wählen Sie die Verschlüsselungsmethode für die Sicherungsdatei.</string>
+    <string name="contacts_backup_mnemonic">Mnemonischer Satz</string>
+    <string name="contacts_backup_mnemonic_desc">Die Datei wird nur für dieses Konto zugänglich sein</string>
+    <string name="contacts_backup_password">Benutzerdefiniertes Passwort</string>
+    <string name="contacts_backup_password_desc">Datei kann auf jedem Gerät importiert werden</string>
+    <string name="contacts_backup_password_placeholder">Passwort erstellen</string>
+    <string name="contacts_import_password_title">Passwort erforderlich</string>
+    <string name="contacts_import_password_msg">Diese Datei ist mit einem Passwort verschlüsselt. Geben Sie es ein, um Kontakte zu importieren.</string>
+    <string name="contacts_import_password_placeholder">Passwort eingeben</string>
+    <string name="contacts_error_file_open">Datei konnte nicht geöffnet werden</string>
+    <string name="contacts_export_success">Kontakte erfolgreich exportiert</string>
+    <string name="contacts_export_failed">Export fehlgeschlagen</string>
+    <string name="contacts_import_success">Kontakte erfolgreich importiert</string>
+    <string name="contacts_import_error_data">Import fehlgeschlagen: Ungültiges Passwort oder Daten</string>
+    <string name="contacts_import_error_mnemonic">Import fehlgeschlagen: Mnemonik-Fehler</string>
+
+    <string name="text_copied">Text kopiert</string>
+    <string name="settings_clipboard_title">Zwischenablage leeren</string>
+    <string name="settings_clipboard_description">Kopierten Text nach einer Zeit automatisch löschen</string>
+    <string name="settings_clipboard_30s">30 Sekunden</string>
+    <string name="settings_clipboard_1m">1 Minute</string>
+    <string name="settings_clipboard_5m">5 Minuten</string>
+    <string name="settings_clipboard_never">Nie</string>
+
+    <string name="chat">Chat</string>
+
+    <!-- Schriftarteinstellungen -->
+    <string name="settings_font_title">App-Schriftart</string>
+    <string name="settings_font_system">System (Standard)</string>
+    <string name="settings_font_inter">Inter</string>
+    <string name="settings_font_manrope">Manrope</string>
+    <string name="settings_font_jetbrains">JetBrains Mono</string>
+
+    <string name="rename">Umbenennen</string>
+    <string name="rename_contact">Kontakt umbenennen</string>
+    <string name="contact_name">Kontaktname</string>
+
+    <string name="bulk_delete_contact_single">Sind Sie sicher, dass Sie diesen Kontakt und den gesamten Verlauf löschen möchten?</string>
+    <string name="bulk_delete_contact_multiple">Ausgewählte Kontakte (%1$d) und Chat-Verlauf löschen?</string>
+    <string name="bulk_delete_chat_single">Diesen Chat vollständig leeren?</string>
+    <string name="bulk_delete_chat_multiple">Ausgewählte Chats (%1$d) vollständig leeren?</string>
+    <string name="error_name_required">Name ist für diesen Kontakt erforderlich</string>
+
+    <string name="tab_contacts_history">Kontakte (Verlauf)</string>
+    <string name="chat_is_empty">Chat ist leer</string>
+    <string name="clear_history_only">Nur Verlauf löschen</string>
+    <string name="delete_all_confirm">Kontakt UND Verlauf löschen</string>
+    <string name="delete_contact_action">Kontakt löschen</string>
+
+    <string name="forward_to">Weiterleiten an…</string>
+
+    <string name="read_receipts">Lesebestätigungen</string>
+    <string name="read_receipts_desc">Lesebestätigungen senden und empfangen</string>
+
+    <string name="import_id">ID importieren (12 Wörter)</string>
+    <string name="import_profile">ID importieren (12 Wörter)</string>
+    <string name="empty_value_placeholder">—</string>
+    <string name="clipboard_label_id">AtsuID</string>
+    <string name="ntfy_placeholder">https://ntfy.sh</string>
+    <string name="qr_code_description">QR-Code</string>
+
+    <string name="create_id">Neue ID erstellen</string>
+
+    <!-- Server Access & Subscription -->
+    <string name="access_settings">Serverzugriff</string>
+    <string name="access_status_label">Status: %1$s</string>
+    <string name="access_status_active">Aktiv</string>
+    <string name="access_status_expired">Inaktiv / Erforderlich</string>
+    <string name="access_expires_label">Läuft am %1$s ab</string>
+    <string name="access_expiry_never">Läuft nie ab</string>
+    <string name="activate_access">Zugriff aktivieren</string>
+    <string name="enter_code_hint">16-stelligen Zugangscode eingeben</string>
+    <string name="buy_code_info">Um Ihre Identität privat zu halten, verwenden wir anonyme Zugangscodes. Sie können einen über unser offizielles Portal oder unseren Bot erhalten.</string>
+    <string name="apply_code">Code anwenden</string>
+    <string name="invalid_code">Ungültiger oder abgelaufener Code</string>
+    <string name="code_activated">Zugriff erfolgreich aktiviert!</string>
+
+</resources>
