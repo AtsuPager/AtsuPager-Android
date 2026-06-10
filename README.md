@@ -30,6 +30,18 @@ AtsuPager is a high-security communication platform for Android, designed with a
 - **Push Notifications**: Integrated with **Ntfy.sh** for Google-free (FCM-free) notifications.
 - **BIP39/Bitcoinj**: Professional-grade implementation of Bitcoin crypto standards.
 
+## 📦 Downloads & Verification
+
+You can find the latest signed APK in the [Releases](https://github.com/AtsuPager/AtsuPager-Android/releases) section.
+Always verify the SHA-256 checksum provided in the release notes before installation.
+
+## 💰 Support & Donations
+
+AtsuPager is free and open-source. Your support helps maintain the infrastructure and develop new security features.
+
+- **Bitcoin (BTC):** `bc1qcyk460u3t3fh0n4t0rqdjmwrzx89flgrfpgcet`
+- **Ethereum (ETH):** `0x517a367a8Bcc2C5E7e2Eb98D8b40305Ba1706529`
+
 ## 🛠️ Build & Configuration
 
 To build the project, provide your infrastructure URLs in `local.properties`:
@@ -37,7 +49,6 @@ To build the project, provide your infrastructure URLs in `local.properties`:
 ```properties
 # Your private signaling/file server URL
 vps.url=https://your-signal-server.com
-file.api.url=https://your-file-api.com
 ```
 
 ## ⚖️ Licensing
