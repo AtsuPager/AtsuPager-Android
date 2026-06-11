@@ -1,6 +1,6 @@
 /*
- * AtsuPager - Secure Bitcoin-based Messenger
- * Copyright (c) 2026 AtsuLab. All rights reserved.
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
  */
 
 package com.nax.atsupager.data.network

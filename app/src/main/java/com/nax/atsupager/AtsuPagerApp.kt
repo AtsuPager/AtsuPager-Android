@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager
 
 import android.app.Application

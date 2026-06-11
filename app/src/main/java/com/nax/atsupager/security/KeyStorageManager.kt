@@ -1,18 +1,6 @@
 /*
- * AtsuPager - Secure Bitcoin-based Messenger
- * Copyright (c) 2026 AtsuLab. All rights reserved.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * For commercial licensing inquiries, contact AtsuLab.
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
  */
 
 package com.nax.atsupager.security
@@ -130,7 +118,7 @@ class KeyStorageManager @Inject constructor(
             val encrypted = cipher.doFinal(mnemonicBytes)
             prefs.edit().putString(getMnemonicKey(userId), Base64.encodeToString(encrypted, Base64.NO_WRAP)).apply()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save mnemonic", e)
+            Log.e(TAG, "Failed to save mnemonic")
         } finally {
             SecureDataHandler.wipe(mnemonicBytes)
         }
@@ -152,7 +140,7 @@ class KeyStorageManager @Inject constructor(
             SecureDataHandler.wipe(decryptedBytes)
             chars
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get mnemonic", e)
+            Log.e(TAG, "Failed to get mnemonic")
             null
         }
     }
@@ -182,7 +170,7 @@ class KeyStorageManager @Inject constructor(
             kpg.initialize(builder.build())
             kpg.generateKeyPair()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to generate KeyStore pair", e)
+            Log.e(TAG, "Failed to generate KeyStore pair")
         }
     }
 
@@ -201,7 +189,7 @@ class KeyStorageManager @Inject constructor(
             val encrypted = cipher.doFinal(pinBytes)
             prefs.edit().putString(getPinKey(userId), Base64.encodeToString(encrypted, Base64.NO_WRAP)).apply()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save PIN", e)
+            Log.e(TAG, "Failed to save PIN")
         } finally {
             SecureDataHandler.wipe(pinBytes)
         }
@@ -226,7 +214,7 @@ class KeyStorageManager @Inject constructor(
             SecureDataHandler.wipe(decryptedPinBytes)
             isValid
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to verify PIN", e)
+            Log.e(TAG, "Failed to verify PIN")
             false
         } finally {
             SecureDataHandler.wipe(inputPinBytes)
@@ -258,7 +246,7 @@ class KeyStorageManager @Inject constructor(
                 cipher.init(Cipher.DECRYPT_MODE, privateKey)
                 return cipher.doFinal(Base64.decode(encryptedBase64, Base64.NO_WRAP))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to decrypt key $prefsKey", e)
+                Log.e(TAG, "Failed to decrypt key $prefsKey")
             }
         }
         val newKey = ByteArray(size)
@@ -270,7 +258,7 @@ class KeyStorageManager @Inject constructor(
             val encrypted = cipher.doFinal(newKey)
             prefs.edit().putString(prefsKey, Base64.encodeToString(encrypted, Base64.NO_WRAP)).apply()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to store encrypted key $prefsKey", e)
+            Log.e(TAG, "Failed to store encrypted key $prefsKey")
         }
         return newKey
     }
@@ -282,7 +270,7 @@ class KeyStorageManager @Inject constructor(
             prefs.edit().remove(getMnemonicKey(userId)).remove(getPinKey(userId)).remove(getDbPassKey(userId)).remove(getMediaKeyAlias(userId)).apply()
             Log.d(TAG, "Purged security data for user: $userId")
         } catch (e: Exception) {
-            Log.e(TAG, "Error purging profile data", e)
+            Log.e(TAG, "Error purging profile data")
         }
     }
 }
