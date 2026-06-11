@@ -1,7 +1,7 @@
-# --- Глобальные настройки ---
+# --- Global Settings ---
 -keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,*Annotation*,RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations
 
-# --- Нативные методы ---
+# --- Native Methods ---
 -keepclasseswithmembernames class * {
     native <methods>;
 }
@@ -34,23 +34,32 @@
 -keep class * extends androidx.room.RoomDatabase
 -keep class androidx.room.Room
 
-# --- СЕТЕВОЙ ПРОТОКОЛ (Критично для совместимости) ---
-# Запрещаем переименовывать поля в классах, которые сериализуются в JSON через Gson.
-# Если поля будут переименованы в "a", "b", "c", другое приложение их не поймет.
+# --- NETWORK PROTOCOL (Critical for compatibility) ---
+# Prevent renaming fields in classes that are serialized to JSON via Gson.
+# If fields are renamed to "a", "b", "c", other applications won't understand them.
 
-# Модели сообщений и сигналов
+# Message and Signal models
 -keep class com.nax.atsupager.data.model.** { *; }
 -keep class com.nax.atsupager.data.network.** { *; }
 -keep class com.nax.atsupager.security.EncryptedPayload { *; }
 -keep class com.nax.atsupager.data.network.SignalData { *; }
 -keep class com.nax.atsupager.data.network.MessageWrapper { *; }
 
-# Защита всех классов с аннотациями Gson
+# Keep User model for correct GSON operation
+-keep class com.nax.atsupager.data.model.User { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+
+# If you use TypeToken, you need to keep its internals
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
+# Protection for all classes with Gson annotations
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# --- Прочее ---
+# --- Other ---
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
