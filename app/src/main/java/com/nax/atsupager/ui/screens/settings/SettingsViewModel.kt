@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.settings
 
 import android.content.Context
@@ -140,20 +145,15 @@ class SettingsViewModel @Inject constructor(
         val isPinSet = keyStorageManager.hasPin(storageUserId)
         val loginName = prefs.getString(PREF_LOGIN_NAME, "") ?: ""
         
-        val mnemonicChars = keyStorageManager.getMnemonicAsCharArray(storageUserId)
-        val btcAddress = mnemonicChars?.let { keyStorageManager.getBitcoinAddressFromMnemonic(it) }
-        val mnemonic = mnemonicChars?.let { chars ->
-            try {
-                String(chars).split(" ")
-            } finally {
-                SecureDataHandler.wipe(chars)
-            }
+        // Load address for identification
+        val btcAddress = keyStorageManager.getMnemonicAsCharArray(storageUserId)?.let { chars ->
+            try { keyStorageManager.getBitcoinAddressFromMnemonic(chars) } finally { SecureDataHandler.wipe(chars) }
         }
 
-        // Загрузка статуса доступа
+        // Load access status
         val expiryTimestamp = prefs.getLong("${PREF_ACCESS_EXPIRY}_$storageUserId", 0L)
         val accessStatus = when {
-            expiryTimestamp == -1L -> AccessStatus.ACTIVE // Бессрочно
+            expiryTimestamp == -1L -> AccessStatus.ACTIVE // Indefinite
             expiryTimestamp > System.currentTimeMillis() -> AccessStatus.ACTIVE
             expiryTimestamp == 0L -> AccessStatus.NO_ACCESS
             else -> AccessStatus.EXPIRED
@@ -207,7 +207,7 @@ class SettingsViewModel @Inject constructor(
             isReadReceiptsEnabled = readReceiptsEnabled,
             isPinSet = isPinSet,
             bitcoinAddress = btcAddress,
-            mnemonic = mnemonic,
+            mnemonic = null, // Security: never load mnemonic into state during general load
             loginName = loginName,
             photoQuality = photoQuality,
             videoQuality = videoQuality,
@@ -230,10 +230,26 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Обрабатывает код активации: очищает от мусора, подписывает и отправляет на сервер.
+     * Loads the mnemonic into the UI state upon request.
+     */
+    fun prepareMnemonic() {
+        val storageUserId = authRepository.getCurrentUserId() ?: sessionManager.getActiveProfileId()
+        val mnemonicChars = keyStorageManager.getMnemonicAsCharArray(storageUserId)
+        val mnemonic = mnemonicChars?.let { chars ->
+            try {
+                String(chars).split(" ")
+            } finally {
+                SecureDataHandler.wipe(chars)
+            }
+        }
+        _uiState.update { it.copy(mnemonic = mnemonic) }
+    }
+
+    /**
+     * Processes the activation code: cleans it, signs it, and sends it to the server.
      */
     fun applyAccessCode(code: String, onResult: (Boolean, String?) -> Unit) {
-        // Очистка: только буквы и цифры в верхнем регистре
+        // Cleanup: letters and digits only, uppercase
         val cleanCode = code.replace(Regex("[^A-Z0-9]"), "").uppercase()
 
         if (cleanCode.length != 16) {
@@ -258,7 +274,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Немедленно очищает мнемонику из состояния UI для защиты RAM.
+     * Immediately clears the mnemonic from the UI state for RAM protection.
      */
     fun clearMnemonicFromState() {
         _uiState.update { it.copy(mnemonic = null) }
@@ -291,14 +307,14 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Удаляет профиль. Принимает CharArray PIN-кода для безопасности.
+     * Deletes the profile. Accepts a CharArray PIN for security.
      */
     fun deleteProfile(userId: String, pinChars: CharArray, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             val hasPin = keyStorageManager.hasPin(userId)
             val isPinValid = !hasPin || keyStorageManager.verifyPin(userId, pinChars)
             
-            // Очищаем PIN сразу после проверки
+            // Clear PIN immediately after verification
             SecureDataHandler.wipe(pinChars)
 
             if (isPinValid) {
@@ -419,7 +435,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Проверяет старый PIN. Принимает CharArray.
+     * Verifies the old PIN. Accepts a CharArray.
      */
     fun verifyOldPin(pinChars: CharArray): Boolean {
         val userId = authRepository.getCurrentUserId() ?: sessionManager.getActiveProfileId()
@@ -431,7 +447,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Устанавливает новый PIN. Принимает CharArray.
+     * Sets a new PIN. Accepts a CharArray.
      */
     fun setPin(pinChars: CharArray?) {
         val userId = authRepository.getCurrentUserId() ?: sessionManager.getActiveProfileId()

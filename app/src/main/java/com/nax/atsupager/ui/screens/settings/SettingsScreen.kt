@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.settings
 
 import android.content.Intent
@@ -354,7 +359,13 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                             }
                         }
                         Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = { showMnemonicDisplayDialog = true }, modifier = Modifier.fillMaxWidth().padding(end = 16.dp)) {
+                        OutlinedButton(
+                            onClick = { 
+                                viewModel.prepareMnemonic()
+                                showMnemonicDisplayDialog = true 
+                            }, 
+                            modifier = Modifier.fillMaxWidth().padding(end = 16.dp)
+                        ) {
                             Icon(Icons.Default.Visibility, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.show_mnemonic))
                         }
                     }
@@ -363,32 +374,59 @@ fun SettingsContent(viewModel: SettingsViewModel) {
 
             HorizontalDivider()
 
-            // Server Access Section
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.access_settings)) },
-                supportingContent = {
-                    val statusText = when (uiState.accessStatus) {
-                        AccessStatus.ACTIVE -> stringResource(R.string.access_status_active)
-                        else -> stringResource(R.string.access_status_expired)
+            // Server Access Section (Updated to Accent Card with Wide Button)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, 
+                    if (uiState.accessStatus == AccessStatus.ACTIVE) MaterialTheme.colorScheme.outlineVariant 
+                    else MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val icon = if (uiState.accessStatus == AccessStatus.ACTIVE) Icons.Default.Shield else Icons.Default.ShieldMoon
+                        val color = if (uiState.accessStatus == AccessStatus.ACTIVE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        
+                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.access_settings),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            val detailText = if (uiState.accessStatus == AccessStatus.ACTIVE) {
+                                stringResource(R.string.access_expires_label, uiState.accessExpiry)
+                            } else {
+                                stringResource(R.string.access_status_expired)
+                            }
+                            Text(
+                                text = detailText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (uiState.accessStatus == AccessStatus.ACTIVE) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
-                    val detailText = if (uiState.accessStatus == AccessStatus.ACTIVE) {
-                        stringResource(R.string.access_expires_label, uiState.accessExpiry)
-                    } else statusText
-                    
-                    Text(detailText)
-                },
-                leadingContent = { 
-                    SettingsLeadingIcon(
-                        if (uiState.accessStatus == AccessStatus.ACTIVE) Icons.Default.Shield 
-                        else Icons.Default.ShieldMoon
-                    ) 
-                },
-                trailingContent = {
-                    TextButton(onClick = { showAccessDialog = true }) {
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = { showAccessDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = if (uiState.accessStatus != AccessStatus.ACTIVE) 
+                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            else ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                    ) {
+                        Icon(Icons.Default.VpnKey, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.activate_access))
                     }
                 }
-            )
+            }
 
             HorizontalDivider()
 
