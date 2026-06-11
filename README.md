@@ -77,4 +77,4 @@ This project is licensed under the **GNU GPL v3**.
 - **Commercial Use**: Allowed under the terms of GPL v3. For proprietary integration, white-labeling, or commercial deployment without sharing source code, please contact the Author for a separate commercial license.
 
 ---
-*Developed with ❤️ for the Privacy Community. Stay Sovereign.*
+* Developed with ❤️ for the Privacy Community. Stay Sovereign.*
