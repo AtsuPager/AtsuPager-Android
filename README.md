@@ -33,7 +33,24 @@ AtsuPager is a high-security communication platform for Android, designed with a
 ## 📦 Downloads & Verification
 
 You can find the latest signed APK in the [Releases](https://github.com/AtsuPager/AtsuPager-Android/releases) section.
-Always verify the SHA-256 checksum provided in the release notes before installation.
+
+**Current APK SHA-256 Checksum:**
+`683db41a29fcb2d54562d0f4d75590b5b8649b325dd3822fa2de4c408eb23ea0`
+
+## 🧪 Beta Testing
+
+You can test the application using our infrastructure. After installation, go to **Settings -> Access Status** and enter one of the following activation codes to unlock access:
+
+1. `L4FN-FMGP-DUHC-53JM`
+2. `THEM-TKH6-VRCN-WQB9`
+3. `6TV5-5RYW-SXCG-ZBB3`
+4. `FGKP-8N6M-SUA8-7T9E`
+5. `JM8C-TT42-6JMY-Z7BB`
+6. `G4BV-87WJ-CGPD-PYEQ`
+7. `PBZX-PDVR-5CN6-CS6S`
+8. `8ATF-VWB6-WTHF-S73Z`
+9. `2UTQ-FVR7-ZMQY-4FU8`
+10. `XJSM-DZ84-H3EB-S78J`
 
 ## 💰 Support & Donations
 
