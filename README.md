@@ -34,7 +34,7 @@ AtsuPager features a built-in P2P game engine, allowing users to interact within
 The latest signed APK is available in the [Releases](https://github.com/AtsuPager/AtsuPager-Android/releases) section.
 
 **Current APK SHA-256 Checksum:**
-`683db41a29fcb2d54562d0f4d75590b5b8649b325dd3822fa2de4c408eb23ea0`
+`18fa374b2c99fcc300e725ee148faffac4c9ea3a8bd90d978c70cbd88d9692df`
 
 ## 🧪 Beta Testing
 You can test the application using our infrastructure. After installation, go to **Settings -> Access Status** and enter one of the following activation codes:
