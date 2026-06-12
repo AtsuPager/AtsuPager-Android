@@ -28,6 +28,7 @@ import com.nax.atsupager.data.db.ChatMessage
 import com.nax.atsupager.data.db.MessageType
 import com.nax.atsupager.webrtc.CallStatusManager
 import com.nax.atsupager.security.ClipboardUiHelper
+import com.nax.atsupager.security.KeyboardSecurity
 import com.nax.atsupager.ui.components.*
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -110,6 +111,58 @@ fun MainScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.onErrorDismissed()
         }
+    }
+
+    // Access Activation Dialog (Intercepting actions)
+    if (uiState.showAccessDialog) {
+        var codeInput by remember { mutableStateOf("") }
+        var isVerifying by remember { mutableStateOf(false) }
+        var errorText by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isVerifying) viewModel.closeAccessDialog() },
+            title = { Text(stringResource(R.string.access_settings)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.buy_code_info), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(16.dp))
+                    StyledTextField(
+                        value = codeInput,
+                        onValueChange = { 
+                            val filtered = it.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
+                            if (filtered.length <= 25) codeInput = filtered 
+                        },
+                        placeholderText = stringResource(R.string.enter_code_hint),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardSecurity.secureChatOptions
+                    )
+                    if (errorText != null) {
+                        Text(text = errorText!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                val cleanLength = codeInput.filter { it.isLetterOrDigit() }.length
+                Button(
+                    onClick = {
+                        isVerifying = true
+                        viewModel.applyAccessCode(codeInput) { success, error ->
+                            isVerifying = false
+                            if (!success) errorText = error
+                        }
+                    },
+                    enabled = cleanLength == 16 && !isVerifying
+                ) {
+                    if (isVerifying) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    else Text(stringResource(R.string.apply_code))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.closeAccessDialog() }, enabled = !isVerifying) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     if (showClearConfirm) {
@@ -330,7 +383,7 @@ fun MainScreen(
                         ChatLayout(
                             uiState = uiState,
                             onSendMessage = { viewModel.sendMessage(it) },
-                            onAttachFile = { filePickerLauncher.launch("*/*") },
+                            onAttachFile = { viewModel.checkAccess { filePickerLauncher.launch("*/*") } },
                             onFileClick = { message ->
                                 val isMediaMessage = message.type == MessageType.IMAGE ||
                                         message.type == MessageType.VIDEO ||
@@ -366,12 +419,16 @@ fun MainScreen(
                             onStopAudio = { viewModel.audioPlayer.stopAndReset() },
                             onSeekAudio = viewModel::seekAudio,
                             onTakePhoto = { 
-                                tempUri = MainUiUtils.createTempUri(context, "jpg")
-                                takePictureLauncher.launch(tempUri!!) 
+                                viewModel.checkAccess {
+                                    tempUri = MainUiUtils.createTempUri(context, "jpg")
+                                    takePictureLauncher.launch(tempUri!!)
+                                }
                             },
                             onCaptureVideo = { 
-                                tempUri = MainUiUtils.createTempUri(context, "mp4")
-                                captureVideoLauncher.launch(tempUri!!) 
+                                viewModel.checkAccess {
+                                    tempUri = MainUiUtils.createTempUri(context, "mp4")
+                                    captureVideoLauncher.launch(tempUri!!)
+                                }
                             },
                             onToggleSelection = viewModel::toggleMessageSelection,
                             onClearSelection = viewModel::clearMessageSelection,

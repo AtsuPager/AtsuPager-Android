@@ -12,8 +12,11 @@ import com.nax.atsupager.data.db.MessageDao
 import com.nax.atsupager.data.db.MessageType
 import com.nax.atsupager.data.model.User
 import com.nax.atsupager.data.network.AuthRepository
+import com.nax.atsupager.data.network.SignalRepository
 import com.nax.atsupager.data.network.UserRepository
 import com.nax.atsupager.security.SecureDataHandler
+import com.nax.atsupager.ui.screens.settings.SettingsViewModel
+import com.nax.atsupager.ui.screens.settings.AccessStatus
 import com.nax.atsupager.webrtc.ActiveCallInfo
 import com.nax.atsupager.webrtc.CallStatusManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,7 +57,9 @@ data class ContactsUiState(
     val selectedIds: Set<String> = emptySet(),
     val expandedId: String? = null,
     val totalUnreadCount: Int = 0,
-    val chatUnreadCount: Int = 0
+    val chatUnreadCount: Int = 0,
+    val accessStatus: AccessStatus = AccessStatus.ACTIVE,
+    val showAccessDialog: Boolean = false
 ) {
     val isSelectionMode: Boolean get() = selectedIds.isNotEmpty()
 }
@@ -64,6 +69,7 @@ class ContactsViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val contactsRepository: ContactsRepository,
     private val messageDao: MessageDao,
+    private val signalRepository: SignalRepository,
     private val sharedPreferences: SharedPreferences,
     private val callStatusManager: CallStatusManager,
     @ApplicationContext private val context: Context,
@@ -86,6 +92,28 @@ class ContactsViewModel @Inject constructor(
         observeData()
         observeActiveCall()
         observeUnreadCounts()
+        
+        // Initial access check for auto-popup on relaunch/entry
+        checkAccessOnStart()
+        
+        // Listen for real-time access expiration
+        signalRepository.accessRequiredEvent
+            .onEach { _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun checkAccessOnStart() {
+        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$currentUserId", 0L)
+        val isActiveStatus = when {
+            expiry == -1L -> true
+            expiry > System.currentTimeMillis() -> true
+            else -> false
+        }
+        if (!isActiveStatus) {
+            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.NO_ACCESS) }
+        } else {
+            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
+        }
     }
 
     private fun observeUnreadCounts() {
@@ -196,21 +224,65 @@ class ContactsViewModel @Inject constructor(
         _uiState.update { it.copy(expandedId = null) }
     }
 
-    fun initiateCall(targetId: String, isVideo: Boolean) {
+    private fun checkAccess(onAuthorized: () -> Unit) {
+        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$currentUserId", 0L)
+        val isActiveStatus = when {
+            expiry == -1L -> true
+            expiry > System.currentTimeMillis() -> true
+            else -> false
+        }
+        
+        if (isActiveStatus) {
+            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
+            onAuthorized()
+        } else {
+            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) }
+        }
+    }
+
+    fun applyAccessCode(code: String, onResult: (Boolean, String?) -> Unit) {
+        val cleanCode = code.replace(Regex("[^A-Z0-9]"), "").uppercase()
+        if (cleanCode.length != 16) {
+            onResult(false, context.getString(R.string.invalid_code))
+            return
+        }
+
         viewModelScope.launch {
-            launch(Dispatchers.IO) {
-                messageDao.insertMessage(
-                    ChatMessage(
-                        fromUserId = currentUserId, 
-                        toUserId = targetId, 
-                        text = "CALL_OUTGOING",
-                        timestamp = System.currentTimeMillis(), 
-                        isRead = true, 
-                        type = MessageType.OUTGOING_CALL
-                    )
-                )
+            signalRepository.verifyAccessCode(cleanCode) { success, error, expiry ->
+                viewModelScope.launch {
+                    if (success && expiry != null) {
+                        sharedPreferences.edit().putLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$currentUserId", expiry).apply()
+                        _uiState.update { it.copy(showAccessDialog = false, accessStatus = AccessStatus.ACTIVE) }
+                        onResult(true, null)
+                    } else {
+                        onResult(false, error ?: context.getString(R.string.invalid_code))
+                    }
+                }
             }
-            callStatusManager.startCall(targetId, true, isVideo, null)
+        }
+    }
+
+    fun closeAccessDialog() {
+        _uiState.update { it.copy(showAccessDialog = false) }
+    }
+
+    fun initiateCall(targetId: String, isVideo: Boolean) {
+        checkAccess {
+            viewModelScope.launch {
+                viewModelScope.launch(Dispatchers.IO) {
+                    messageDao.insertMessage(
+                        ChatMessage(
+                            fromUserId = currentUserId, 
+                            toUserId = targetId, 
+                            text = "CALL_OUTGOING",
+                            timestamp = System.currentTimeMillis(), 
+                            isRead = true, 
+                            type = MessageType.OUTGOING_CALL
+                        )
+                    )
+                }
+                callStatusManager.startCall(targetId, true, isVideo, null)
+            }
         }
     }
 

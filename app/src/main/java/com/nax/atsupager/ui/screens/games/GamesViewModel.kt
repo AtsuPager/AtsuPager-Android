@@ -19,6 +19,7 @@ import com.nax.atsupager.data.network.SignalData
 import com.nax.atsupager.data.network.SignalRepository
 import com.nax.atsupager.data.network.SignalType
 import com.nax.atsupager.data.network.UserRepository
+import com.nax.atsupager.data.network.AuthRepository
 import com.nax.atsupager.domain.backgammon.BackgammonEngine
 import com.nax.atsupager.domain.backgammon.BackgammonManager
 import com.nax.atsupager.domain.checkers.CheckersEngine
@@ -29,6 +30,7 @@ import com.nax.atsupager.domain.chess.ChessManager
 import com.nax.atsupager.domain.chess.ChessMove
 import com.nax.atsupager.domain.chess.PromotionData
 import com.nax.atsupager.ui.screens.settings.SettingsViewModel
+import com.nax.atsupager.ui.screens.settings.AccessStatus
 import com.nax.atsupager.webrtc.ActiveCallInfo
 import com.nax.atsupager.webrtc.CallAudioManager
 import com.nax.atsupager.webrtc.CallStatusManager
@@ -38,6 +40,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import java.util.UUID
 import javax.inject.Inject
 
@@ -74,7 +77,9 @@ data class GamesUiState(
     val isChessCheck: Boolean = false,
     val pendingPromotion: PromotionData? = null,
     val activeCallInfo: ActiveCallInfo? = null,
-    val activeCallUser: User? = null
+    val activeCallUser: User? = null,
+    val accessStatus: AccessStatus = AccessStatus.ACTIVE,
+    val showAccessDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -95,7 +100,7 @@ class GamesViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val targetUserId: String = savedStateHandle.get<String>("userId") ?: ""
-    private val myId: String = userRepository.getCurrentUserIdSync() ?: ""
+    private val myId: String = sharedPreferences.getString(AuthRepository.KEY_USER_ID, "") ?: ""
     
     private val _uiState = MutableStateFlow(GamesUiState(targetUserId = targetUserId))
     val uiState = _uiState.asStateFlow()
@@ -123,8 +128,66 @@ class GamesViewModel @Inject constructor(
                 isBackgammonActive = active == "backgammon",
                 isCheckersActive = active == "checkers"
             ) }
+
+            checkAccessOnStart()
+            
+            signalRepository.accessRequiredEvent
+                .onEach { _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) } }
+                .launchIn(viewModelScope)
         }
     }
+
+    private fun checkAccessOnStart() {
+        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$myId", 0L)
+        val isActiveStatus = when {
+            expiry == -1L -> true
+            expiry > System.currentTimeMillis() -> true
+            else -> false
+        }
+        if (!isActiveStatus) {
+            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.NO_ACCESS) }
+        } else {
+            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
+        }
+    }
+
+    private fun checkAccess(onAuthorized: () -> Unit) {
+        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$myId", 0L)
+        val isActiveStatus = when {
+            expiry == -1L -> true
+            expiry > System.currentTimeMillis() -> true
+            else -> false
+        }
+        if (isActiveStatus) {
+            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
+            onAuthorized()
+        } else {
+            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) }
+        }
+    }
+
+    fun applyAccessCode(code: String, onResult: (Boolean, String?) -> Unit) {
+        val cleanCode = code.replace(Regex("[^A-Z0-9]"), "").uppercase()
+        if (cleanCode.length != 16) {
+            onResult(false, context.getString(R.string.invalid_code))
+            return
+        }
+        viewModelScope.launch {
+            signalRepository.verifyAccessCode(cleanCode) { success, error, expiry ->
+                viewModelScope.launch {
+                    if (success && expiry != null) {
+                        sharedPreferences.edit().putLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$myId", expiry).apply()
+                        _uiState.update { it.copy(showAccessDialog = false, accessStatus = AccessStatus.ACTIVE) }
+                        onResult(true, null)
+                    } else {
+                        onResult(false, error ?: context.getString(R.string.invalid_code))
+                    }
+                }
+            }
+        }
+    }
+
+    fun closeAccessDialog() { _uiState.update { it.copy(showAccessDialog = false) } }
 
     private fun observeExternalStates() {
         viewModelScope.launch {
@@ -331,37 +394,23 @@ class GamesViewModel @Inject constructor(
                 "checkers" -> context.getString(R.string.checkers)
                 else -> gameType
             }
-            
-            // Получаем корректное имя из настроек
-            val myName = sharedPreferences.getString(SettingsViewModel.PREF_LOGIN_NAME, "")
-                .takeIf { !it.isNullOrBlank() } ?: "User"
-            
-            // Используем invite_msg_chat: "invites you to play %2$s."
+            val myName = sharedPreferences.getString(SettingsViewModel.PREF_LOGIN_NAME, "").takeIf { !it.isNullOrBlank() } ?: "User"
             val inviteText = "$myName " + context.getString(R.string.invite_msg_chat, "", gameTitle).trim()
-            
-            // Отправляем как реальное сообщение собеседнику
             signalRepository.sendMessage(targetUserId, inviteText)
-            
-            // Сохраняем локально, чтобы видеть пузырь у себя
-            messageDao.insertMessage(ChatMessage(
-                fromUserId = myId,
-                toUserId = targetUserId,
-                text = inviteText,
-                timestamp = System.currentTimeMillis(),
-                isRead = true,
-                type = MessageType.TEXT
-            ))
+            messageDao.insertMessage(ChatMessage(fromUserId = myId, toUserId = targetUserId, text = inviteText, timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.TEXT))
         }
     }
 
     fun startNewChessGame(myColor: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBackgammonActive = false, isCheckersActive = false, showChessMenu = false, isWaitingForChessAccept = true) }
-            val gameId = UUID.randomUUID().toString()
-            val invite = GameInvitePacket("chess", myId, myColor, gameId, ChessEngine.INITIAL_FEN)
-            chessManager.initGameLocally(targetUserId, gameId, ChessEngine.INITIAL_FEN, myColor)
-            signalRepository.sendSignal(targetUserId, SignalData(callId = gameId, type = SignalType.GAME_INVITE, payload = gson.toJson(invite)))
-            sendInviteAsChatMessage("chess")
+        checkAccess {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isBackgammonActive = false, isCheckersActive = false, showChessMenu = false, isWaitingForChessAccept = true) }
+                val gameId = UUID.randomUUID().toString()
+                val invite = GameInvitePacket("chess", myId, myColor, gameId, ChessEngine.INITIAL_FEN)
+                chessManager.initGameLocally(targetUserId, gameId, ChessEngine.INITIAL_FEN, myColor)
+                signalRepository.sendSignal(targetUserId, SignalData(callId = gameId, type = SignalType.GAME_INVITE, payload = gson.toJson(invite)))
+                sendInviteAsChatMessage("chess")
+            }
         }
     }
 
@@ -376,13 +425,15 @@ class GamesViewModel @Inject constructor(
     }
 
     fun startNewBackgammonGame(myColor: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isChessActive = false, isCheckersActive = false, showBackgammonMenu = false, isWaitingForBackgammonAccept = true) }
-            val gameId = UUID.randomUUID().toString()
-            val invite = GameInvitePacket("backgammon", myId, myColor, gameId)
-            backgammonManager.initGameLocally(targetUserId, gameId, BackgammonEngine.createInitialState(), myColor)
-            signalRepository.sendSignal(targetUserId, SignalData(callId = gameId, type = SignalType.GAME_INVITE, payload = gson.toJson(invite)))
-            sendInviteAsChatMessage("backgammon")
+        checkAccess {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isChessActive = false, isCheckersActive = false, showBackgammonMenu = false, isWaitingForBackgammonAccept = true) }
+                val gameId = UUID.randomUUID().toString()
+                val invite = GameInvitePacket("backgammon", myId, myColor, gameId)
+                backgammonManager.initGameLocally(targetUserId, gameId, BackgammonEngine.createInitialState(), myColor)
+                signalRepository.sendSignal(targetUserId, SignalData(callId = gameId, type = SignalType.GAME_INVITE, payload = gson.toJson(invite)))
+                sendInviteAsChatMessage("backgammon")
+            }
         }
     }
 
@@ -398,13 +449,15 @@ class GamesViewModel @Inject constructor(
     }
 
     fun startNewCheckersGame(myColor: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isChessActive = false, isBackgammonActive = false, showCheckersMenu = false, isWaitingForCheckersAccept = true) }
-            val gameId = UUID.randomUUID().toString()
-            val invite = GameInvitePacket("checkers", myId, myColor, gameId, CheckersEngine.INITIAL_STATE)
-            checkersManager.initGameLocally(targetUserId, gameId, CheckersEngine.INITIAL_STATE, myColor)
-            signalRepository.sendSignal(targetUserId, SignalData(callId = gameId, type = SignalType.GAME_INVITE, payload = gson.toJson(invite)))
-            sendInviteAsChatMessage("checkers")
+        checkAccess {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isChessActive = false, isBackgammonActive = false, showCheckersMenu = false, isWaitingForCheckersAccept = true) }
+                val gameId = UUID.randomUUID().toString()
+                val invite = GameInvitePacket("checkers", myId, myColor, gameId, CheckersEngine.INITIAL_STATE)
+                checkersManager.initGameLocally(targetUserId, gameId, CheckersEngine.INITIAL_STATE, myColor)
+                signalRepository.sendSignal(targetUserId, SignalData(callId = gameId, type = SignalType.GAME_INVITE, payload = gson.toJson(invite)))
+                sendInviteAsChatMessage("checkers")
+            }
         }
     }
 
@@ -465,6 +518,7 @@ class GamesViewModel @Inject constructor(
     fun onBackgammonMove(f: Int, t: Int, d: Int) { viewModelScope.launch { backgammonManager.makeMove(targetUserId, f, t, d) } }
 
     fun showChessMenu() { _uiState.update { it.copy(showChessMenu = true) } }
+    fun collapseExpanded() { /* No-op */ }
     fun closeChessMenu() { _uiState.update { it.copy(showChessMenu = false) } }
     fun showBackgammonMenu() { _uiState.update { it.copy(showBackgammonMenu = true) } }
     fun closeBackgammonMenu() { _uiState.update { it.copy(showBackgammonMenu = false) } }
@@ -472,41 +526,47 @@ class GamesViewModel @Inject constructor(
     fun closeCheckersMenu() { _uiState.update { it.copy(showCheckersMenu = false) } }
     
     fun continueChessGame() { 
-        val state = chessManager.gameState.value
-        if (state is ChessManager.ChessGameState.Active) {
-            viewModelScope.launch {
-                val newGameId = UUID.randomUUID().toString()
-                _uiState.update { it.copy(isWaitingForChessAccept = true, showChessMenu = false) }
-                chessManager.initGameLocally(targetUserId, newGameId, state.fen, state.myColor)
-                signalRepository.sendSignal(targetUserId, SignalData(callId = newGameId, type = SignalType.GAME_INVITE, payload = gson.toJson(GameInvitePacket("chess", myId, state.myColor, newGameId, state.fen))))
-                sendInviteAsChatMessage("chess")
+        checkAccess {
+            val state = chessManager.gameState.value
+            if (state is ChessManager.ChessGameState.Active) {
+                viewModelScope.launch {
+                    val newGameId = UUID.randomUUID().toString()
+                    _uiState.update { it.copy(isWaitingForChessAccept = true, showChessMenu = false) }
+                    chessManager.initGameLocally(targetUserId, newGameId, state.fen, state.myColor)
+                    signalRepository.sendSignal(targetUserId, SignalData(callId = newGameId, type = SignalType.GAME_INVITE, payload = gson.toJson(GameInvitePacket("chess", myId, state.myColor, newGameId, state.fen))))
+                    sendInviteAsChatMessage("chess")
+                }
             }
         }
     }
     
     fun continueBackgammonGame() { 
-        val state = backgammonManager.gameState.value
-        if (state is BackgammonManager.BackgammonGameState.Active) {
-            viewModelScope.launch {
-                val newGameId = UUID.randomUUID().toString()
-                _uiState.update { it.copy(isWaitingForBackgammonAccept = true, showBackgammonMenu = false) }
-                val stateStr = BackgammonEngine.stateToString(state.state)
-                backgammonManager.initGameLocally(targetUserId, newGameId, state.state, state.myColor)
-                signalRepository.sendSignal(targetUserId, SignalData(callId = newGameId, type = SignalType.GAME_INVITE, payload = gson.toJson(GameInvitePacket("backgammon", myId, state.myColor, newGameId, stateStr))))
-                sendInviteAsChatMessage("backgammon")
+        checkAccess {
+            val state = backgammonManager.gameState.value
+            if (state is BackgammonManager.BackgammonGameState.Active) {
+                viewModelScope.launch {
+                    val newGameId = UUID.randomUUID().toString()
+                    _uiState.update { it.copy(isWaitingForBackgammonAccept = true, showBackgammonMenu = false) }
+                    val stateStr = BackgammonEngine.stateToString(state.state)
+                    backgammonManager.initGameLocally(targetUserId, newGameId, state.state, state.myColor)
+                    signalRepository.sendSignal(targetUserId, SignalData(callId = newGameId, type = SignalType.GAME_INVITE, payload = gson.toJson(GameInvitePacket("backgammon", myId, state.myColor, newGameId, stateStr))))
+                    sendInviteAsChatMessage("backgammon")
+                }
             }
         }
     }
 
     fun continueCheckersGame() { 
-        val state = checkersManager.gameState.value
-        if (state is CheckersManager.CheckersGameState.Active) {
-            viewModelScope.launch {
-                val newGameId = UUID.randomUUID().toString()
-                _uiState.update { it.copy(isWaitingForCheckersAccept = true, showCheckersMenu = false) }
-                checkersManager.initGameLocally(targetUserId, newGameId, state.state, state.myColor)
-                signalRepository.sendSignal(targetUserId, SignalData(callId = newGameId, type = SignalType.GAME_INVITE, payload = gson.toJson(GameInvitePacket("checkers", myId, state.myColor, newGameId, state.state))))
-                sendInviteAsChatMessage("checkers")
+        checkAccess {
+            val state = checkersManager.gameState.value
+            if (state is CheckersManager.CheckersGameState.Active) {
+                viewModelScope.launch {
+                    val newGameId = UUID.randomUUID().toString()
+                    _uiState.update { it.copy(isWaitingForCheckersAccept = true, showCheckersMenu = false) }
+                    checkersManager.initGameLocally(targetUserId, newGameId, state.state, state.myColor)
+                    signalRepository.sendSignal(targetUserId, SignalData(callId = newGameId, type = SignalType.GAME_INVITE, payload = gson.toJson(GameInvitePacket("checkers", myId, state.myColor, newGameId, state.state))))
+                    sendInviteAsChatMessage("checkers")
+                }
             }
         }
     }
@@ -525,16 +585,24 @@ class GamesViewModel @Inject constructor(
     fun refreshGame() { viewModelScope.launch { signalRepository.forcePoll() } }
 
     fun initiateAudioCall() {
-        viewModelScope.launch {
-            messageDao.insertMessage(ChatMessage(fromUserId = myId, toUserId = targetUserId, text = "", timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.OUTGOING_CALL))
-            callStatusManager.startCall(targetUserId, isCaller = true, isVideo = false, callId = null)
+        checkAccess {
+            viewModelScope.launch {
+                viewModelScope.launch(Dispatchers.IO) {
+                    messageDao.insertMessage(ChatMessage(fromUserId = myId, toUserId = targetUserId, text = "", timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.OUTGOING_CALL))
+                }
+                callStatusManager.startCall(targetUserId, isCaller = true, isVideo = false, callId = null)
+            }
         }
     }
 
     fun initiateVideoCall() {
-        viewModelScope.launch {
-            messageDao.insertMessage(ChatMessage(fromUserId = myId, toUserId = targetUserId, text = "", timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.OUTGOING_CALL))
-            callStatusManager.startCall(targetUserId, isCaller = true, isVideo = true, callId = null)
+        checkAccess {
+            viewModelScope.launch {
+                viewModelScope.launch(Dispatchers.IO) {
+                    messageDao.insertMessage(ChatMessage(fromUserId = myId, toUserId = targetUserId, text = "", timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.OUTGOING_CALL))
+                }
+                callStatusManager.startCall(targetUserId, isCaller = true, isVideo = true, callId = null)
+            }
         }
     }
 

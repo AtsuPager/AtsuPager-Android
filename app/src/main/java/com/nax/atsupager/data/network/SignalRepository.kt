@@ -102,6 +102,9 @@ class SignalRepository @Inject constructor(
     private val _status = MutableStateFlow(ConnectionStatus.DISCONNECTED)
     val status = _status.asStateFlow()
 
+    private val _accessRequiredEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val accessRequiredEvent = _accessRequiredEvent.asSharedFlow()
+
     private val _incomingCallSignals = MutableSharedFlow<IncomingSignal>(
         replay = 10, 
         extraBufferCapacity = 20, 
@@ -254,6 +257,7 @@ class SignalRepository @Inject constructor(
             socket?.on("access_required") { 
                 Log.w(TAG, "Access required! Subscription might be expired.")
                 sharedPreferences.edit().putLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$currentUserId", 0L).apply()
+                _accessRequiredEvent.tryEmit(Unit)
             }
 
             socket?.on("new_signal") { args -> if (_status.value == ConnectionStatus.CONNECTED) handleIncomingSocketData(args[0] as JSONObject) }

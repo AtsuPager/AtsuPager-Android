@@ -22,6 +22,7 @@ import com.nax.atsupager.security.KeyStorageManager
 import com.nax.atsupager.security.MessageLifecycleManager
 import com.nax.atsupager.ui.screens.contacts.ContactsRepository
 import com.nax.atsupager.ui.screens.settings.SettingsViewModel
+import com.nax.atsupager.ui.screens.settings.AccessStatus
 import com.nax.atsupager.webrtc.ActiveCallInfo
 import com.nax.atsupager.webrtc.CallStatusManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -66,7 +67,9 @@ data class MainUiState(
     val decryptedPaths: Map<Long, String> = emptyMap(),
     val isContact: Boolean = true,
     val selectedMessageIds: Set<Long> = emptySet(),
-    val selectingTextMsgId: Long? = null
+    val selectingTextMsgId: Long? = null,
+    val accessStatus: AccessStatus = AccessStatus.ACTIVE,
+    val showAccessDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -113,6 +116,78 @@ class MainViewModel @Inject constructor(
         observeContactStatus()
         startVisualCleanupTimer()
         signalRepository.clearUserNotifications(contactId)
+        
+        // Initial access check for auto-popup on relaunch
+        checkAccessOnStart()
+        
+        // Listen for real-time access expiration
+        signalRepository.accessRequiredEvent
+            .onEach { _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun checkAccessOnStart() {
+        val storageUserId = currentUserId
+        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$storageUserId", 0L)
+        val isActiveStatus = when {
+            expiry == -1L -> true
+            expiry > System.currentTimeMillis() -> true
+            else -> false
+        }
+        
+        if (!isActiveStatus) {
+            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.NO_ACCESS) }
+        } else {
+            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
+        }
+    }
+
+    fun checkAccess(onAuthorized: () -> Unit) {
+        val storageUserId = currentUserId
+        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$storageUserId", 0L)
+        val isActiveStatus = when {
+            expiry == -1L -> true
+            expiry > System.currentTimeMillis() -> true
+            else -> false
+        }
+        
+        if (isActiveStatus) {
+            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
+            onAuthorized()
+        } else {
+            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) }
+        }
+    }
+
+    fun applyAccessCode(code: String, onResult: (Boolean, String?) -> Unit) {
+        val cleanCode = code.replace(Regex("[^A-Z0-9]"), "").uppercase()
+        if (cleanCode.length != 16) {
+            onResult(false, context.getString(R.string.invalid_code))
+            return
+        }
+
+        viewModelScope.launch {
+            signalRepository.verifyAccessCode(cleanCode) { success, error, expiry ->
+                viewModelScope.launch {
+                    if (success && expiry != null) {
+                        onAccessActivated(expiry)
+                        onResult(true, null)
+                    } else {
+                        onResult(false, error ?: context.getString(R.string.invalid_code))
+                    }
+                }
+            }
+        }
+    }
+
+    fun closeAccessDialog() {
+        _uiState.update { it.copy(showAccessDialog = false) }
+    }
+
+    private fun onAccessActivated(newExpiry: Long) {
+        val storageUserId = currentUserId
+        sharedPreferences.edit().putLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$storageUserId", newExpiry).apply()
+        _uiState.update { it.copy(showAccessDialog = false, accessStatus = AccessStatus.ACTIVE) }
     }
 
     private fun startVisualCleanupTimer() {
@@ -234,86 +309,92 @@ class MainViewModel @Inject constructor(
 
     fun sendMessage(text: String) {
         if (text.isBlank()) return
-        viewModelScope.launch {
-            val message = ChatMessage(
-                fromUserId = currentUserId, 
-                toUserId = contactId, 
-                text = text, 
-                timestamp = System.currentTimeMillis(), 
-                isRead = true, 
-                type = MessageType.TEXT
-            )
-            val id = messageDao.insertMessage(message)
-            signalRepository.sendFileMessage(contactId, message.copy(id = id))
+        checkAccess {
+            viewModelScope.launch {
+                val message = ChatMessage(
+                    fromUserId = currentUserId, 
+                    toUserId = contactId, 
+                    text = text, 
+                    timestamp = System.currentTimeMillis(), 
+                    isRead = true, 
+                    type = MessageType.TEXT
+                )
+                val id = messageDao.insertMessage(message)
+                signalRepository.sendFileMessage(contactId, message.copy(id = id))
+            }
         }
     }
 
     fun sendFile(uri: Uri) {
-        viewModelScope.launch {
-            val metadata = getFileMetadata(uri) ?: return@launch
-            val messageType = determineMessageType(metadata.third)
-            val dimensions = if (messageType == MessageType.IMAGE) getImageDimensions(uri) else null
+        checkAccess {
+            viewModelScope.launch {
+                val metadata = getFileMetadata(uri) ?: return@launch
+                val messageType = determineMessageType(metadata.third)
+                val dimensions = if (messageType == MessageType.IMAGE) getImageDimensions(uri) else null
 
-            val targetDir = sessionManager.getMediaDir(contactId, "outgoing")
-            val secureFile = File(targetDir, "sent_${UUID.randomUUID()}.enc")
-            
-            val encryptionSuccess = withContext(Dispatchers.IO) {
-                try {
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        secureFile.outputStream().use { fos ->
-                            encryptionManager.getEncryptingStreamForStorage(fos, localKey)?.use { cipherOut ->
-                                input.copyTo(cipherOut)
+                val targetDir = sessionManager.getMediaDir(contactId, "outgoing")
+                val secureFile = File(targetDir, "sent_${UUID.randomUUID()}.enc")
+                
+                val encryptionSuccess = withContext(Dispatchers.IO) {
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            secureFile.outputStream().use { fos ->
+                                encryptionManager.getEncryptingStreamForStorage(fos, localKey)?.use { cipherOut ->
+                                    input.copyTo(cipherOut)
+                                }
                             }
                         }
+                        true
+                    } catch (e: Exception) {
+                        secureFile.delete()
+                        false
                     }
-                    true
-                } catch (e: Exception) {
-                    secureFile.delete()
-                    false
                 }
-            }
 
-            if (!encryptionSuccess) {
-                _uiState.update { it.copy(error = "Encryption failed") }
-                return@launch
-            }
-
-            val initialMsg = ChatMessage(
-                fromUserId = currentUserId, toUserId = contactId, text = "",
-                timestamp = System.currentTimeMillis(), isRead = true, type = messageType,
-                fileName = metadata.first, fileSize = metadata.second, mimeType = metadata.third,
-                width = dimensions?.first, height = dimensions?.second, localFilePath = secureFile.absolutePath
-            )
-            
-            val messageId = messageDao.insertMessage(initialMsg)
-            _uiState.update { it.copy(uploadingMessageIds = it.uploadingMessageIds + messageId) }
-
-            signalRepository.uploadFile("Atsusend", secureFile, contactId, localKey).fold(
-                onSuccess = { result ->
-                    messageDao.updateMessageUrl(messageId, result.url)
-                    result.encryptedKey?.let { messageDao.updateFileEncryptionKey(messageId, it) }
-                    signalRepository.sendFileMessage(contactId, initialMsg.copy(id = messageId, fileUrl = result.url, fileEncryptionKey = result.encryptedKey))
-                },
-                onFailure = { 
-                    _uiState.update { s -> s.copy(error = "Upload failed") }
-                    messageDao.deleteMessageById(messageId)
-                    secureFile.delete()
+                if (!encryptionSuccess) {
+                    _uiState.update { it.copy(error = "Encryption failed") }
+                    return@launch
                 }
-            )
-            _uiState.update { it.copy(uploadingMessageIds = it.uploadingMessageIds - messageId) }
+
+                val initialMsg = ChatMessage(
+                    fromUserId = currentUserId, toUserId = contactId, text = "",
+                    timestamp = System.currentTimeMillis(), isRead = true, type = messageType,
+                    fileName = metadata.first, fileSize = metadata.second, mimeType = metadata.third,
+                    width = dimensions?.first, height = dimensions?.second, localFilePath = secureFile.absolutePath
+                )
+                
+                val messageId = messageDao.insertMessage(initialMsg)
+                _uiState.update { it.copy(uploadingMessageIds = it.uploadingMessageIds + messageId) }
+
+                signalRepository.uploadFile("Atsusend", secureFile, contactId, localKey).fold(
+                    onSuccess = { result ->
+                        messageDao.updateMessageUrl(messageId, result.url)
+                        result.encryptedKey?.let { messageDao.updateFileEncryptionKey(messageId, it) }
+                        signalRepository.sendFileMessage(contactId, initialMsg.copy(id = messageId, fileUrl = result.url, fileEncryptionKey = result.encryptedKey))
+                    },
+                    onFailure = { 
+                        _uiState.update { s -> s.copy(error = "Upload failed") }
+                        messageDao.deleteMessageById(messageId)
+                        secureFile.delete()
+                    }
+                )
+                _uiState.update { it.copy(uploadingMessageIds = it.uploadingMessageIds - messageId) }
+            }
         }
     }
 
     fun startRecording() {
-        val bitrate = sharedPreferences.getInt(SettingsViewModel.PREF_AUDIO_BITRATE, 64000)
-        val targetDir = sessionManager.getMediaDir(contactId, "outgoing")
-        val outputFile = File(targetDir, "voice_${UUID.randomUUID()}.enc")
-        
-        if (audioRecorder.start(outputFile, localKey, bitrate)) {
-            recordedFile = outputFile
-            recordingStartTime = System.currentTimeMillis()
-            _uiState.update { it.copy(isRecording = true, isAudioReadyToSend = false, amplitudes = emptyList()) }
-            startRecordingTimer()
+        checkAccess {
+            val bitrate = sharedPreferences.getInt(SettingsViewModel.PREF_AUDIO_BITRATE, 64000)
+            val targetDir = sessionManager.getMediaDir(contactId, "outgoing")
+            val outputFile = File(targetDir, "voice_${UUID.randomUUID()}.enc")
+            
+            if (audioRecorder.start(outputFile, localKey, bitrate)) {
+                recordedFile = outputFile
+                recordingStartTime = System.currentTimeMillis()
+                _uiState.update { it.copy(isRecording = true, isAudioReadyToSend = false, amplitudes = emptyList()) }
+                startRecordingTimer()
+            }
         }
     }
 
@@ -698,16 +779,18 @@ class MainViewModel @Inject constructor(
     } catch (_: Exception) { null }
 
     fun initiateCall(isVideo: Boolean) {
-        viewModelScope.launch {
-            launch(Dispatchers.IO) {
-                messageDao.insertMessage(
-                    ChatMessage(
-                        fromUserId = currentUserId, toUserId = contactId, text = "CALL_OUTGOING",
-                        timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.OUTGOING_CALL
+        checkAccess {
+            viewModelScope.launch {
+                viewModelScope.launch(Dispatchers.IO) {
+                    messageDao.insertMessage(
+                        ChatMessage(
+                            fromUserId = currentUserId, toUserId = contactId, text = "CALL_OUTGOING",
+                            timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.OUTGOING_CALL
+                        )
                     )
-                )
+                }
+                callStatusManager.startCall(contactId, true, isVideo, null)
             }
-            callStatusManager.startCall(contactId, true, isVideo, null)
         }
     }
 
