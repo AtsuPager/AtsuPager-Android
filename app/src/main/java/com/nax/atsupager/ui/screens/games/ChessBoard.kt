@@ -18,7 +18,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.nax.atsupager.R
 import com.nax.atsupager.domain.chess.ChessEngine
 import com.nax.atsupager.domain.chess.ChessMove
@@ -179,44 +178,6 @@ fun ChessBoard(
                 color = statusTextColor,
                 textAlign = TextAlign.Center
             )
-        }
-    }
-}
-
-@Composable
-fun PromotionDialog(isWhite: Boolean, onSelect: (Char) -> Unit) {
-    Dialog(onDismissRequest = { }) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.chess_select_piece),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val pieces = if (isWhite) listOf('Q', 'R', 'B', 'N') else listOf('q', 'r', 'b', 'n')
-                    pieces.forEach { piece ->
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                .clickable { onSelect(piece) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            ChessPieceIcon(char = piece)
-                        }
-                    }
-                }
-            }
         }
     }
 }

@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -30,22 +37,28 @@ fun ContactAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 36.dp,
     fontSize: TextUnit = 16.sp,
-    isActiveCall: Boolean = false
+    isActiveCall: Boolean = false,
+    isGroup: Boolean = false
 ) {
-    val color = remember(username) {
-        val colors = listOf(
-            Color(0xFFEF5350), Color(0xFFAB47BC), Color(0xFF5C6BC0),
-            Color(0xFF29B6F6), Color(0xFF66BB6A), Color(0xFFFFA726)
-        )
-        if (username.isEmpty()) colors[0] else colors[username.length % colors.size]
+    val color = remember(username, isGroup) {
+        if (isGroup) {
+            Color(0xFF607D8B) // Grey-ish for groups
+        } else {
+            val colors = listOf(
+                Color(0xFFEF5350), Color(0xFFAB47BC), Color(0xFF5C6BC0),
+                Color(0xFF29B6F6), Color(0xFF66BB6A), Color(0xFFFFA726)
+            )
+            if (username.isEmpty()) colors[0] else colors[username.length % colors.size]
+        }
     }
+
+    val shape = if (isGroup) RoundedCornerShape(size * 0.3f) else CircleShape
 
     Box(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-        if (isActiveCall) {
-            // Эффект "пульсации" (сонар)
+        if (isActiveCall && !isGroup) {
             val infiniteTransition = rememberInfiniteTransition(label = "avatar_pulse")
             val scale by infiniteTransition.animateFloat(
                 initialValue = 1f,
@@ -81,24 +94,40 @@ fun ContactAvatar(
         Box(
             modifier = Modifier
                 .size(size)
-                .clip(CircleShape)
+                .clip(shape)
                 .background(color)
                 .then(
-                    if (isActiveCall) Modifier.border(2.dp, Color(0xFF4CAF50), CircleShape)
-                    else Modifier
+                    when {
+                        isActiveCall && !isGroup -> Modifier.border(2.dp, Color(0xFF4CAF50), CircleShape)
+                        else -> Modifier
+                    }
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = username.take(1).uppercase(),
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = fontSize
-            )
+            if (isGroup) {
+                Icon(
+                    imageVector = Icons.Default.Groups,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(size * 0.6f)
+                )
+            } else {
+                Text(
+                    text = username.take(1).uppercase(),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fontSize,
+                    textAlign = TextAlign.Center,
+                    style = TextStyle(
+                        platformStyle = PlatformTextStyle(
+                            includeFontPadding = false
+                        )
+                    )
+                )
+            }
         }
 
-        if (isActiveCall) {
-            // Маленькая зеленая точка статуса в углу
+        if (isActiveCall && !isGroup) {
             Box(
                 modifier = Modifier
                     .size(size / 4)

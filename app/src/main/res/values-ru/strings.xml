@@ -390,4 +390,52 @@
     <string name="invalid_code">Неверный код или истек срок действия</string>
     <string name="code_activated">Доступ успешно активирован!</string>
 
+    <string name="group">Группа</string>
+    <string name="group_name_hint">Введите название группы</string>
+    <string name="system_joined_group">Вы присоединились к группе %1$s</string><!-- Group Management -->
+    <string name="group_members">Участники группы</string>
+    <string name="leave_group">Покинуть группу</string>
+    <string name="leave_group_confirm">Вы уверены, что хотите покинуть группу? Если вы владелец, права владения перейдут к другому участнику.</string>
+    <string name="owner_label">Владелец</string>
+    <string name="you_label">Вы</string>
+    <string name="kick_member_confirm">Удалить %1$s из группы?</string>
+    <string name="error_group_not_found">Группа не найдена</string>
+    <string name="add_member">Добавить участника</string>
+    <!-- System Messages in Chat -->
+    <string name="system_group_created">Группа создана</string>
+    <string name="system_member_joined">%1$s присоединился к группе</string>
+    <string name="system_member_left">%1$s покинул группу</string>
+    <string name="system_member_kicked">%1$s был удален из группы</string>
+    <string name="system_new_owner">%1$s теперь владелец группы</string>
+    <string name="system_you_kicked">Вы были удалены из группы</string>
+
+    <string name="audio_message">Голосовое сообщение</string>
+    <string name="image_message">Фото</string>
+    <string name="video_message">Видео</string>
+    <string name="file">Файл</string>
+
+    <string name="system_group_renamed">Группа переименована в: %1$s</string>
+    <string name="create_group">Создать группу</string>
+    <string name="rename_group">Переименовать группу</string>
+
+    <string name="export_profile_title">Экспорт профиля</string>
+    <string name="import_profile_title">Импорт профиля</string>
+    <string name="include_history">Включить историю чатов</string>
+    <string name="include_history_desc">Включая все текстовые сообщения и системные уведомления</string>
+
+    <string name="contacts_import_success_contacts_only">Импорт завершен: восстановлены только контакты (другой ID)</string>
+
+    <string name="error_password_short">Пароль должен быть не менее 8 символов</string>
+
+    <string name="tab_groups">Группы</string>
+
+    <string name="add_caption_hint">Добавить подпись…</string>
+
+    <string name="menu_sounds">Звуки</string>
+
+    <string name="delete_group">Удалить группу</string>
+    <string name="delete_group_confirm">Удалить группу для всех? Все сообщения и медиафайлы будут удалены у всех участников.</string>
+
+    <string name="start_new_game">Начать новую игру</string>
+
 </resources>

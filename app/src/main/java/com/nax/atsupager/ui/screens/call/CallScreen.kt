@@ -120,6 +120,8 @@ fun CallScreen(
             AtsuTopAppBar(
                 mode = TopAppBarMode.CALL,
                 user = User(id = viewModel.getTargetUserId(), username = uiState.username ?: stringResource(R.string.caller_unknown), publicKey = null),
+                group = null,
+                currentUserId = "",
                 statusText = statusText,
                 activeCallInfo = ActiveCallInfo(
                     userId = viewModel.getTargetUserId(),

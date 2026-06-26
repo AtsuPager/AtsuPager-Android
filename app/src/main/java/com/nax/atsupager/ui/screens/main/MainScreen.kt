@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.main
 
 import android.Manifest
@@ -9,17 +14,13 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -28,8 +29,18 @@ import com.nax.atsupager.data.db.ChatMessage
 import com.nax.atsupager.data.db.MessageType
 import com.nax.atsupager.webrtc.CallStatusManager
 import com.nax.atsupager.security.ClipboardUiHelper
-import com.nax.atsupager.security.KeyboardSecurity
 import com.nax.atsupager.ui.components.*
+
+sealed class MainDialog {
+    object ClearChat : MainDialog()
+    object BulkDelete : MainDialog()
+    object ExportConfirm : MainDialog()
+    object ForwardPicker : MainDialog()
+    object AddMemberPicker : MainDialog()
+    object MembersSheet : MainDialog()
+    object LeaveGroupOptions : MainDialog()
+    data class DownloadOptions(val message: ChatMessage) : MainDialog()
+}
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -49,15 +60,7 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var showDownloadDialog by remember { mutableStateOf(false) }
-    var selectedMessageForDownload by remember { mutableStateOf<ChatMessage?>(null) }
-    
-    var showClearConfirm by remember { mutableStateOf(false) }
-    var showBulkDeleteConfirm by remember { mutableStateOf(false) }
-    var showExportConfirmBySelection by remember { mutableStateOf(false) }
-    var deleteFilesFromDevice by remember { mutableStateOf(false) }
-    var deleteForEveryone by remember { mutableStateOf(false) }
-    var showForwardPicker by remember { mutableStateOf(false) }
+    var activeDialog by remember { mutableStateOf<MainDialog?>(null) }
 
     val isSelectionMode = uiState.selectedMessageIds.isNotEmpty()
     val selectedMessages = remember(uiState.selectedMessageIds, uiState.messages) {
@@ -65,6 +68,8 @@ fun MainScreen(
     }
     val singleSelectedMessage = selectedMessages.singleOrNull()
     val hasMyMessages = remember(selectedMessages) { selectedMessages.any { it.fromUserId == uiState.currentUserId } }
+    val isOwner = uiState.group?.ownerId == uiState.currentUserId
+    val canDeleteForEveryone = hasMyMessages || (uiState.isGroup && isOwner)
 
     val permissionState = rememberMultiplePermissionsState(
         permissions = listOfNotNull(
@@ -82,27 +87,31 @@ fun MainScreen(
     }
 
     val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.sendFile(it) }
+        uri?.let { viewModel.prepareFileAttachment(it) }
     }
 
     var tempUri by remember { mutableStateOf<Uri?>(null) }
-    val takePictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) tempUri?.let { viewModel.sendFile(it) }
-    }
     val captureVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
-        if (success) tempUri?.let { viewModel.sendFile(it) }
+        if (success) tempUri?.let { viewModel.prepareFileAttachment(it) }
     }
 
     LaunchedEffect(Unit) { permissionState.launchMultiplePermissionRequest() }
     
-    BackHandler(enabled = isSelectionMode) {
-        viewModel.clearMessageSelection()
+    BackHandler(enabled = isSelectionMode || uiState.isCameraOpen) {
+        if (uiState.isCameraOpen) viewModel.closeCamera()
+        else viewModel.clearMessageSelection()
     }
 
     LaunchedEffect(uiState.navigateToCall) {
         uiState.navigateToCall?.let {
             onNavigateToCall(it.userId, it.isVideo)
             viewModel.onCallNavigated()
+        }
+    }
+    
+    LaunchedEffect(uiState.isGroupLeft) {
+        if (uiState.isGroupLeft) {
+            onNavigateBack()
         }
     }
 
@@ -113,180 +122,121 @@ fun MainScreen(
         }
     }
 
-    // Access Activation Dialog (Intercepting actions)
+    // Camera Overlay
+    if (uiState.isCameraOpen) {
+        AtsuCamera(
+            onImageCaptured = { viewModel.onImageCaptured(it) },
+            onCancel = { viewModel.closeCamera() }
+        )
+        return
+    }
+
+    // Access Activation Dialog
     if (uiState.showAccessDialog) {
-        var codeInput by remember { mutableStateOf("") }
-        var isVerifying by remember { mutableStateOf(false) }
-        var errorText by remember { mutableStateOf<String?>(null) }
+        AccessCodeDialog(
+            onDismiss = { viewModel.closeAccessDialog() },
+            onVerify = { code, onResult -> viewModel.applyAccessCode(code, onResult) }
+        )
+    }
 
-        AlertDialog(
-            onDismissRequest = { if (!isVerifying) viewModel.closeAccessDialog() },
-            title = { Text(stringResource(R.string.access_settings)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.buy_code_info), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(16.dp))
-                    StyledTextField(
-                        value = codeInput,
-                        onValueChange = { 
-                            val filtered = it.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
-                            if (filtered.length <= 25) codeInput = filtered 
-                        },
-                        placeholderText = stringResource(R.string.enter_code_hint),
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardSecurity.secureChatOptions
-                    )
-                    if (errorText != null) {
-                        Text(text = errorText!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+    // Dialog Handling
+    when (val dialog = activeDialog) {
+        is MainDialog.ClearChat -> {
+            ClearChatConfirmDialog(
+                onDismiss = { activeDialog = null },
+                onConfirm = { deleteFiles, forEveryone ->
+                    viewModel.clearChat(deleteFiles, forEveryone)
+                    activeDialog = null
+                }
+            )
+        }
+        is MainDialog.BulkDelete -> {
+            BulkDeleteMessagesDialog(
+                count = uiState.selectedMessageIds.size,
+                canDeleteForEveryone = canDeleteForEveryone,
+                onDismiss = { activeDialog = null },
+                onConfirm = { deleteFiles, forEveryone ->
+                    viewModel.deleteSelectedMessages(deleteFiles, forEveryone)
+                    activeDialog = null
+                }
+            )
+        }
+        is MainDialog.ExportConfirm -> {
+            if (singleSelectedMessage != null) {
+                ExportConfirmationDialog(
+                    onDismiss = { activeDialog = null },
+                    onConfirm = {
+                        viewModel.exportAndKeepMessage(singleSelectedMessage)
+                        viewModel.clearMessageSelection()
+                        activeDialog = null
                     }
-                }
-            },
-            confirmButton = {
-                val cleanLength = codeInput.filter { it.isLetterOrDigit() }.length
-                Button(
-                    onClick = {
-                        isVerifying = true
-                        viewModel.applyAccessCode(codeInput) { success, error ->
-                            isVerifying = false
-                            if (!success) errorText = error
-                        }
-                    },
-                    enabled = cleanLength == 16 && !isVerifying
-                ) {
-                    if (isVerifying) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text(stringResource(R.string.apply_code))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.closeAccessDialog() }, enabled = !isVerifying) {
-                    Text(stringResource(R.string.cancel))
-                }
+                )
             }
-        )
-    }
-
-    if (showClearConfirm) {
-        AlertDialog(
-            onDismissRequest = { showClearConfirm = false },
-            title = { Text(stringResource(R.string.clear_chat_confirm_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.clear_chat_confirm_msg))
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { deleteFilesFromDevice = !deleteFilesFromDevice }
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Checkbox(checked = deleteFilesFromDevice, onCheckedChange = { deleteFilesFromDevice = it })
-                        Text(stringResource(R.string.delete_files_on_device), style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.clearChat(deleteFilesFromDevice)
-                    showClearConfirm = false
-                }) {
-                    Text(stringResource(R.string.clear_button), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearConfirm = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+        }
+        is MainDialog.ForwardPicker -> {
+            val contacts by viewModel.contacts.collectAsState(initial = emptyList())
+            val groups by viewModel.groups.collectAsState(initial = emptyList())
+            val allTargets = remember(contacts, groups) {
+                contacts.map { PickerTarget(it.id, it.username, false) } +
+                groups.map { PickerTarget(it.groupId, it.name, true) }
             }
-        )
-    }
-
-    if (showBulkDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showBulkDeleteConfirm = false },
-            title = { Text(stringResource(R.string.delete_selected_messages_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.delete_selected_messages_msg, uiState.selectedMessageIds.size))
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    if (hasMyMessages) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { deleteForEveryone = !deleteForEveryone }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(checked = deleteForEveryone, onCheckedChange = { deleteForEveryone = it })
-                            Text(stringResource(R.string.delete_for_everyone), style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { deleteFilesFromDevice = !deleteFilesFromDevice }
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Checkbox(checked = deleteFilesFromDevice, onCheckedChange = { deleteFilesFromDevice = it })
-                        Text(stringResource(R.string.delete_files_on_device), style = MaterialTheme.typography.bodyMedium)
-                    }
+            ContactPickerSheet(
+                title = stringResource(R.string.forward_to),
+                targets = allTargets,
+                onContactsSelected = { selectedIds ->
+                    viewModel.forwardSelectedMessages(selectedIds)
+                    activeDialog = null
+                },
+                onDismiss = { activeDialog = null }
+            )
+        }
+        is MainDialog.AddMemberPicker -> {
+            val contacts by viewModel.contacts.collectAsState(initial = emptyList())
+            val currentMemberIds = uiState.groupMembers.map { it.id }.toSet()
+            val availableContacts = contacts.filter { it.id !in currentMemberIds }
+            ContactPickerSheet(
+                title = stringResource(R.string.add_member),
+                contacts = availableContacts,
+                onContactsSelected = { selectedIds ->
+                    viewModel.addGroupMembers(selectedIds)
+                    activeDialog = null
+                },
+                onDismiss = { activeDialog = null }
+            )
+        }
+        is MainDialog.MembersSheet -> {
+            GroupMembersSheet(
+                members = uiState.groupMembers,
+                ownerId = uiState.group?.ownerId ?: "",
+                currentUserId = uiState.currentUserId,
+                onKickMember = { userId -> viewModel.kickMember(userId) },
+                onDismiss = { activeDialog = null }
+            )
+        }
+        is MainDialog.LeaveGroupOptions -> {
+            LeaveGroupOptionsDialog(
+                isAdmin = uiState.isAdmin || isOwner,
+                onDismiss = { activeDialog = null },
+                onLeave = { deleteFiles, forEveryone ->
+                    viewModel.leaveGroup(deleteFiles, forEveryone)
+                    activeDialog = null
+                },
+                onDelete = {
+                    viewModel.deleteGroup()
+                    activeDialog = null
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteSelectedMessages(deleteFilesFromDevice, deleteForEveryone)
-                    showBulkDeleteConfirm = false
-                    deleteForEveryone = false
-                }) {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+            )
+        }
+        is MainDialog.DownloadOptions -> {
+            DownloadOptionsDialog(
+                onDismiss = { activeDialog = null },
+                onDownload = { toPublic ->
+                    viewModel.downloadFile(dialog.message, toPublic)
+                    activeDialog = null
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBulkDeleteConfirm = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (showExportConfirmBySelection && singleSelectedMessage != null) {
-        ExportConfirmationDialog(
-            onDismiss = { showExportConfirmBySelection = false },
-            onConfirm = {
-                viewModel.exportAndKeepMessage(singleSelectedMessage)
-                viewModel.clearMessageSelection()
-                showExportConfirmBySelection = false
-            }
-        )
-    }
-
-    if (showForwardPicker) {
-        val contacts by viewModel.contacts.collectAsState(initial = emptyList())
-        ContactPickerSheet(
-            contacts = contacts,
-            onContactsSelected = { selectedIds ->
-                viewModel.forwardSelectedMessages(selectedIds)
-                showForwardPicker = false
-            },
-            onDismiss = { showForwardPicker = false }
-        )
-    }
-
-    if (showDownloadDialog && selectedMessageForDownload != null) {
-        DownloadOptionsDialog(
-            onDismiss = { showDownloadDialog = false; selectedMessageForDownload = null },
-            onDownload = { toPublic ->
-                viewModel.downloadFile(selectedMessageForDownload!!, toPublic)
-                showDownloadDialog = false; selectedMessageForDownload = null
-            }
-        )
+            )
+        }
+        null -> {}
     }
 
     if (uiState.isMediaViewerOpen) {
@@ -295,13 +245,13 @@ fun MainScreen(
             initialIndex = uiState.initialMediaIndex,
             viewModel = viewModel,
             onDismiss = viewModel::closeMediaViewer,
-            onDownload = { selectedMessageForDownload = it; showDownloadDialog = true },
+            onDownload = { activeDialog = MainDialog.DownloadOptions(it) },
             downloadingIds = uiState.downloadingMessageIds,
             downloadProgressMap = uiState.downloadProgress,
             onDelete = { msg ->
                 viewModel.clearMessageSelection()
                 viewModel.toggleMessageSelection(msg.id)
-                showBulkDeleteConfirm = true
+                activeDialog = MainDialog.BulkDelete
             }
         )
     }
@@ -312,10 +262,13 @@ fun MainScreen(
                 AtsuTopAppBar(
                     mode = TopAppBarMode.CHAT,
                     user = uiState.user,
+                    group = uiState.group,
+                    currentUserId = uiState.currentUserId,
                     activeCallInfo = uiState.activeCallInfo,
                     activeCallUser = uiState.activeCallUser,
                     callDuration = uiState.callDuration,
                     unreadCount = totalUnread,
+                    isMuted = uiState.isMuted,
                     onActionClick = { action ->
                         if (!isSelectionMode) {
                             when (action) {
@@ -326,7 +279,11 @@ fun MainScreen(
                                 TopAppBarAction.RETURN_TO_CALL -> {
                                     uiState.activeCallInfo?.let { onNavigateToCall(it.userId, it.isVideo) }
                                 }
-                                TopAppBarAction.CLEAR_CHAT -> showClearConfirm = true
+                                TopAppBarAction.CLEAR_CHAT -> activeDialog = MainDialog.ClearChat
+                                TopAppBarAction.ADD_MEMBER -> activeDialog = MainDialog.AddMemberPicker
+                                TopAppBarAction.GROUP_MEMBERS -> activeDialog = MainDialog.MembersSheet
+                                TopAppBarAction.LEAVE_GROUP -> activeDialog = MainDialog.LeaveGroupOptions
+                                TopAppBarAction.TOGGLE_MUTE -> viewModel.toggleMute()
                                 else -> {}
                             }
                         }
@@ -337,10 +294,19 @@ fun MainScreen(
                 SelectionActionsBar(
                     visible = isSelectionMode,
                     selectedCount = uiState.selectedMessageIds.size,
+                    totalCount = uiState.messages.size,
                     onClear = viewModel::clearMessageSelection,
                     onSelectAll = viewModel::selectAllMessages,
-                    onForward = { showForwardPicker = true },
-                    onDelete = { showBulkDeleteConfirm = true },
+                    onReply = {
+                        singleSelectedMessage?.let { 
+                            viewModel.startReply(it)
+                            viewModel.clearMessageSelection()
+                        }
+                    },
+                    canReply = true,
+                    onForward = { activeDialog = MainDialog.ForwardPicker },
+                    canForward = true,
+                    onDelete = { activeDialog = MainDialog.BulkDelete },
                     canCopy = singleSelectedMessage?.type == MessageType.TEXT,
                     onCopy = {
                         singleSelectedMessage?.let { msg ->
@@ -362,7 +328,7 @@ fun MainScreen(
                         }
                     },
                     canExport = singleSelectedMessage?.localFilePath?.endsWith(".enc") == true,
-                    onExport = { showExportConfirmBySelection = true },
+                    onExport = { activeDialog = MainDialog.ExportConfirm },
                     modifier = Modifier.matchParentSize()
                 )
             }
@@ -391,8 +357,7 @@ fun MainScreen(
                                         message.type == MessageType.FILE
 
                                 if (isMediaMessage && message.localFilePath == null) {
-                                    selectedMessageForDownload = message
-                                    showDownloadDialog = true
+                                    activeDialog = MainDialog.DownloadOptions(message)
                                 } else if (message.localFilePath != null) {
                                     when (message.type) {
                                         MessageType.IMAGE -> viewModel.onViewImage(message)
@@ -419,10 +384,7 @@ fun MainScreen(
                             onStopAudio = { viewModel.audioPlayer.stopAndReset() },
                             onSeekAudio = viewModel::seekAudio,
                             onTakePhoto = { 
-                                viewModel.checkAccess {
-                                    tempUri = MainUiUtils.createTempUri(context, "jpg")
-                                    takePictureLauncher.launch(tempUri!!)
-                                }
+                                viewModel.checkAccess { viewModel.openCamera() }
                             },
                             onCaptureVideo = { 
                                 viewModel.checkAccess {
@@ -433,8 +395,14 @@ fun MainScreen(
                             onToggleSelection = viewModel::toggleMessageSelection,
                             onClearSelection = viewModel::clearMessageSelection,
                             onSelectAll = viewModel::selectAllMessages,
-                            onBulkDelete = { showBulkDeleteConfirm = true },
+                            onBulkDelete = { activeDialog = MainDialog.BulkDelete },
                             onSelectingTextChange = viewModel::setSelectingText,
+                            onReply = viewModel::startReply,
+                            onCancelReply = viewModel::cancelReply,
+                            onScrollToMessage = { remoteId -> },
+                            onCaptionChange = viewModel::updatePendingAttachmentCaption,
+                            onCancelAttachment = viewModel::cancelPendingAttachment,
+                            onSendAttachment = viewModel::sendPendingAttachment,
                             snackbarHostState = snackbarHostState
                         )
                     }

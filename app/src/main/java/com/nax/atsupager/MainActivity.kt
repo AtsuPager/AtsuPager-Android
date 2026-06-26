@@ -223,10 +223,23 @@ class MainActivity : AppCompatActivity() {
                     if (showRootWarning) {
                         AlertDialog(
                             onDismissRequest = { showRootWarning = false },
-                            title = { Text("Внимание: Небезопасная среда") },
-                            text = { Text("На вашем устройстве обнаружены Root-права. Это может снизить уровень безопасности AtsuPager.") },
+                            title = { 
+                                Text(
+                                    text = "Внимание: Небезопасная среда",
+                                    style = MaterialTheme.typography.headlineSmall
+                                ) 
+                            },
+                            text = { 
+                                Text(
+                                    text = "На вашем устройстве обнаружены Root-права. Это может снизить уровень безопасности AtsuPager.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                ) 
+                            },
                             confirmButton = {
-                                TextButton(onClick = { showRootWarning = false }) {
+                                Button(
+                                    onClick = { showRootWarning = false },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
                                     Text("Я понимаю риски")
                                 }
                             }
@@ -239,6 +252,8 @@ class MainActivity : AppCompatActivity() {
                 intentState.value?.let { intent ->
                     val isCallPush = intent.getBooleanExtra("incoming_call_push", false)
                     val chatWithId = intent.getStringExtra("chat_with_user_id")
+                    val chatWithGroupId = intent.getStringExtra("chat_with_group_id")
+
                     if (isCallPush) {
                         callStatusManager.restore()
                         intent.removeExtra("incoming_call_push")
@@ -248,6 +263,12 @@ class MainActivity : AppCompatActivity() {
                             launchSingleTop = true
                         }
                         intent.removeExtra("chat_with_user_id")
+                    } else if (chatWithGroupId != null) {
+                        navController.navigate(Screen.GroupChat.createRoute(chatWithGroupId)) {
+                            popUpTo(Screen.Contacts.route)
+                            launchSingleTop = true
+                        }
+                        intent.removeExtra("chat_with_group_id")
                     }
                 }
             }

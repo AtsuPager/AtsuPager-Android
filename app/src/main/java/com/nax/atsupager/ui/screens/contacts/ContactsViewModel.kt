@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.contacts
 
 import android.content.Context
@@ -6,14 +11,11 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.nax.atsupager.R
-import com.nax.atsupager.data.db.ChatMessage
-import com.nax.atsupager.data.db.MessageDao
-import com.nax.atsupager.data.db.MessageType
+import com.nax.atsupager.data.db.*
 import com.nax.atsupager.data.model.User
-import com.nax.atsupager.data.network.AuthRepository
-import com.nax.atsupager.data.network.SignalRepository
-import com.nax.atsupager.data.network.UserRepository
+import com.nax.atsupager.data.network.*
 import com.nax.atsupager.security.SecureDataHandler
 import com.nax.atsupager.ui.screens.settings.SettingsViewModel
 import com.nax.atsupager.ui.screens.settings.AccessStatus
@@ -22,6 +24,7 @@ import com.nax.atsupager.webrtc.CallStatusManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,12 +32,18 @@ import java.io.File
 import javax.inject.Inject
 
 data class ChatSummary(
-    val contact: User,
+    val contact: User? = null,
+    val group: GroupEntity? = null,
     val lastMessage: ChatMessage? = null,
     val unreadCount: Int,
     val isLastMessageFromMe: Boolean,
-    val isContact: Boolean = true
-)
+    val isContact: Boolean = true,
+    val isAdmin: Boolean = false
+) {
+    val id: String get() = contact?.id ?: group?.groupId ?: ""
+    val name: String get() = contact?.username ?: group?.name ?: ""
+    val isGroup: Boolean get() = group != null
+}
 
 data class ResolvedContactInfo(
     val address: String,
@@ -69,6 +78,8 @@ class ContactsViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val contactsRepository: ContactsRepository,
     private val messageDao: MessageDao,
+    private val groupDao: GroupDao,
+    private val groupRepository: GroupRepository,
     private val signalRepository: SignalRepository,
     private val sharedPreferences: SharedPreferences,
     private val callStatusManager: CallStatusManager,
@@ -76,6 +87,7 @@ class ContactsViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    private val gson = Gson()
     private val currentUserId: String = sharedPreferences.getString(AuthRepository.KEY_USER_ID, "") ?: ""
     
     private val _uiState = MutableStateFlow(
@@ -92,11 +104,8 @@ class ContactsViewModel @Inject constructor(
         observeData()
         observeActiveCall()
         observeUnreadCounts()
-        
-        // Initial access check for auto-popup on relaunch/entry
         checkAccessOnStart()
         
-        // Listen for real-time access expiration
         signalRepository.accessRequiredEvent
             .onEach { _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) } }
             .launchIn(viewModelScope)
@@ -153,33 +162,69 @@ class ContactsViewModel @Inject constructor(
     private fun observeData() {
         val messagesFlow = messageDao.getLastMessagesForAllChats(currentUserId)
         val contactsFlow = contactsRepository.getContactsFlow()
+        val groupsFlow = groupDao.getAllGroupsFlow()
+        val membersFlow = groupDao.getAllMembersFlow()
 
-        combine(messagesFlow, contactsFlow) { messages, localContacts ->
+        combine(messagesFlow, contactsFlow, groupsFlow, membersFlow) { messages, localContacts, allGroups, allMembers ->
             val contactIds = localContacts.map { it.id }.toSet()
+            val groupsMap = allGroups.associateBy { it.groupId }
+            val rolesMap = allMembers.filter { it.userId == currentUserId }.associate { it.groupId to it.role }
 
-            // 1. Active chats (with history)
             val activeSummaries = messages.mapNotNull { msg ->
-                val contactId = if (msg.fromUserId == currentUserId) msg.toUserId else msg.fromUserId
-                val contact = userRepository.getUser(contactId) ?: return@mapNotNull null
-                val unreadCount = messageDao.getUnreadCountFromUserSync(currentUserId, contactId)
-                val isContact = contactIds.contains(contactId)
-                ChatSummary(contact, msg, unreadCount, msg.fromUserId == currentUserId, isContact)
+                if (msg.groupId != null) {
+                    val group = groupsMap[msg.groupId] ?: return@mapNotNull null
+                    val unreadCount = messageDao.getUnreadCountForGroup(msg.groupId, currentUserId).first()
+                    val role = rolesMap[msg.groupId]
+                    ChatSummary(
+                        group = group,
+                        lastMessage = msg,
+                        unreadCount = unreadCount,
+                        isLastMessageFromMe = msg.fromUserId == currentUserId,
+                        isContact = true,
+                        isAdmin = role == "ADMIN" || group.ownerId == currentUserId
+                    )
+                } else {
+                    val contactId = if (msg.fromUserId == currentUserId) msg.toUserId else msg.fromUserId
+                    val contact = userRepository.getUser(contactId) ?: return@mapNotNull null
+                    val unreadCount = messageDao.getUnreadCountFromUserSync(currentUserId, contactId)
+                    val isContact = contactIds.contains(contactId)
+                    ChatSummary(
+                        contact = contact,
+                        lastMessage = msg,
+                        unreadCount = unreadCount,
+                        isLastMessageFromMe = msg.fromUserId == currentUserId,
+                        isContact = isContact,
+                        isAdmin = false
+                    )
+                }
             }
             
-            val activeIds = activeSummaries.map { it.contact.id }.toSet()
+            val activeIds = activeSummaries.map { it.id }.toSet()
             
-            // 2. Inactive contacts (no history)
             val inactiveSummaries = localContacts.filter { !activeIds.contains(it.id) }.map { user ->
                 ChatSummary(
                     contact = user,
                     lastMessage = null,
                     unreadCount = 0,
                     isLastMessageFromMe = false,
-                    isContact = true
+                    isContact = true,
+                    isAdmin = false
                 )
-            }.sortedBy { it.contact.username.lowercase() }
+            }.sortedBy { it.contact?.username?.lowercase() }
 
-            activeSummaries + inactiveSummaries
+            val inactiveGroups = allGroups.filter { !activeIds.contains(it.groupId) }.map { group ->
+                val role = rolesMap[group.groupId]
+                ChatSummary(
+                    group = group,
+                    lastMessage = null,
+                    unreadCount = 0,
+                    isLastMessageFromMe = false,
+                    isContact = true,
+                    isAdmin = role == "ADMIN" || group.ownerId == currentUserId
+                )
+            }
+
+            activeSummaries + inactiveSummaries + inactiveGroups
         }
         .flowOn(Dispatchers.IO)
         .onEach { summaries ->
@@ -192,6 +237,30 @@ class ContactsViewModel @Inject constructor(
             }
         }
         .launchIn(viewModelScope)
+    }
+
+    fun createGroup(name: String, memberIds: List<String>) {
+        viewModelScope.launch {
+            val groupId = groupRepository.createGroup(name, memberIds)
+            if (groupId.isNotEmpty()) {
+                _toastEvent.emit(context.getString(R.string.add))
+                clearSelection()
+            }
+        }
+    }
+
+    fun leaveGroup(groupId: String, deleteFiles: Boolean, deleteForEveryone: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            groupRepository.leaveGroup(groupId, deleteFiles, deleteForEveryone)
+            withContext(Dispatchers.Main) { clearSelection() }
+        }
+    }
+
+    fun deleteGroup(groupId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            groupRepository.deleteGroup(groupId)
+            withContext(Dispatchers.Main) { clearSelection() }
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -207,37 +276,21 @@ class ContactsViewModel @Inject constructor(
 
     private fun filterChats(chats: List<ChatSummary>, query: String): List<ChatSummary> {
         if (query.isBlank()) return chats
-        return chats.filter { it.contact.username.contains(query, ignoreCase = true) || it.contact.id.contains(query, ignoreCase = true) }
+        return chats.filter { it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true) }
     }
 
     fun handleHomeNavigation() {
         onSearchQueryChange("")
     }
 
-    fun toggleExpanded(userId: String) {
+    fun toggleExpanded(id: String) {
         _uiState.update { state ->
-            state.copy(expandedId = if (state.expandedId == userId) null else userId)
+            state.copy(expandedId = if (state.expandedId == id) null else id)
         }
     }
 
     fun collapseExpanded() {
         _uiState.update { it.copy(expandedId = null) }
-    }
-
-    private fun checkAccess(onAuthorized: () -> Unit) {
-        val expiry = sharedPreferences.getLong("${SettingsViewModel.PREF_ACCESS_EXPIRY}_$currentUserId", 0L)
-        val isActiveStatus = when {
-            expiry == -1L -> true
-            expiry > System.currentTimeMillis() -> true
-            else -> false
-        }
-        
-        if (isActiveStatus) {
-            _uiState.update { it.copy(accessStatus = AccessStatus.ACTIVE) }
-            onAuthorized()
-        } else {
-            _uiState.update { it.copy(showAccessDialog = true, accessStatus = AccessStatus.EXPIRED) }
-        }
     }
 
     fun applyAccessCode(code: String, onResult: (Boolean, String?) -> Unit) {
@@ -267,31 +320,29 @@ class ContactsViewModel @Inject constructor(
     }
 
     fun initiateCall(targetId: String, isVideo: Boolean) {
-        checkAccess {
-            viewModelScope.launch {
-                viewModelScope.launch(Dispatchers.IO) {
-                    messageDao.insertMessage(
-                        ChatMessage(
-                            fromUserId = currentUserId, 
-                            toUserId = targetId, 
-                            text = "CALL_OUTGOING",
-                            timestamp = System.currentTimeMillis(), 
-                            isRead = true, 
-                            type = MessageType.OUTGOING_CALL
-                        )
+        viewModelScope.launch {
+            viewModelScope.launch(Dispatchers.IO) {
+                messageDao.insertMessage(
+                    ChatMessage(
+                        fromUserId = currentUserId, 
+                        toUserId = targetId, 
+                        text = "CALL_OUTGOING",
+                        timestamp = System.currentTimeMillis(), 
+                        isRead = true, 
+                        type = MessageType.OUTGOING_CALL
                     )
-                }
-                callStatusManager.startCall(targetId, true, isVideo, null)
+                )
             }
+            callStatusManager.startCall(targetId, true, isVideo, null)
         }
     }
 
-    fun toggleSelection(userId: String) {
+    fun toggleSelection(id: String) {
         _uiState.update { state ->
-            val newSelected = if (state.selectedIds.contains(userId)) {
-                state.selectedIds - userId
+            val newSelected = if (state.selectedIds.contains(id)) {
+                state.selectedIds - id
             } else {
-                state.selectedIds + userId
+                state.selectedIds + id
             }
             state.copy(selectedIds = newSelected, expandedId = null)
         }
@@ -299,7 +350,7 @@ class ContactsViewModel @Inject constructor(
 
     fun selectAll() {
         _uiState.update { state ->
-            val ids = state.filteredChats.map { it.contact.id }.toSet()
+            val ids = state.filteredChats.map { it.id }.toSet()
             state.copy(selectedIds = ids, expandedId = null)
         }
     }
@@ -308,23 +359,66 @@ class ContactsViewModel @Inject constructor(
         _uiState.update { it.copy(selectedIds = emptySet()) }
     }
 
-    fun deleteSelected(deleteFiles: Boolean, deleteContact: Boolean) {
+    fun deleteSelected(deleteFiles: Boolean, deleteContact: Boolean, deleteForEveryone: Boolean = false) {
         val state = _uiState.value
         val idsToDelete = state.selectedIds
         if (idsToDelete.isEmpty()) return
         
         viewModelScope.launch(Dispatchers.IO) {
-            idsToDelete.forEach { userId ->
-                if (deleteFiles) {
-                    messageDao.getMessagesForChatSync(currentUserId, userId).forEach { msg ->
-                        msg.localFilePath?.let { deleteLocalFile(it) }
+            idsToDelete.forEach { id ->
+                val summary = state.chats.find { it.id == id } ?: return@forEach
+                val allMessages = if (summary.isGroup) {
+                    messageDao.getMessagesForGroupSync(id)
+                } else {
+                    messageDao.getMessagesForChatSync(currentUserId, id)
+                }
+
+                if (deleteForEveryone) {
+                    val isGroupOwner = if (summary.isGroup) summary.group?.ownerId == currentUserId else false
+                    val messagesToRemove = if (isGroupOwner) allMessages else allMessages.filter { it.fromUserId == currentUserId }
+                    
+                    if (messagesToRemove.isNotEmpty()) {
+                        val lastMsg = messagesToRemove.maxByOrNull { it.timestamp }
+                        val lastTimestamp = lastMsg?.timestamp ?: System.currentTimeMillis()
+                        val lastRemoteId = lastMsg?.remoteId
+                        
+                        signalRepository.sendRemoteBulkDelete(id, summary.isGroup, lastTimestamp, lastRemoteId, isGroupOwner)
+                        
+                        messagesToRemove.forEach { msg ->
+                            msg.fileUrl?.let { url -> signalRepository.deleteFileFromServer(url) }
+                        }
                     }
                 }
-                
-                messageDao.deleteAllMessagesForChat(currentUserId, userId)
-                
-                if (deleteContact) {
-                    contactsRepository.deleteContact(userId)
+
+                if (summary.isGroup) {
+                    if (deleteFiles) {
+                        allMessages.forEach { msg ->
+                            msg.localFilePath?.let { deleteLocalFile(it) }
+                        }
+                    }
+                    
+                    if (deleteContact) {
+                        groupRepository.leaveGroup(id, deleteFiles, deleteForEveryone)
+                    } else {
+                        messageDao.deleteAllMessagesForGroup(id)
+                    }
+                } else {
+                    if (deleteFiles) {
+                        allMessages.forEach { msg ->
+                            msg.localFilePath?.let { path ->
+                                val usageCount = messageDao.getMessageCountByFilePath(path)
+                                if (usageCount <= 1) {
+                                    if (path.startsWith("content://") || path.contains("AtsuPager")) {
+                                        deleteLocalFile(path)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    messageDao.deleteAllMessagesForChat(currentUserId, id)
+                    if (deleteContact) {
+                        contactsRepository.deleteContact(id)
+                    }
                 }
             }
             withContext(Dispatchers.Main) { clearSelection() }
@@ -383,17 +477,25 @@ class ContactsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { contactsRepository.renameContact(userId, newName) }
     }
 
-    fun deleteContact(userId: String, deleteFiles: Boolean, deleteContact: Boolean) {
+    fun renameGroup(groupId: String, newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (deleteFiles) {
-                messageDao.getMessagesForChatSync(currentUserId, userId).forEach { msg ->
-                    msg.localFilePath?.let { deleteLocalFile(it) }
-                }
-            }
-            messageDao.deleteAllMessagesForChat(currentUserId, userId)
-            if (deleteContact) {
-                contactsRepository.deleteContact(userId)
-            }
+            groupDao.renameGroup(groupId, newName)
+            val members = groupDao.getGroupMemberIds(groupId)
+            val renameSignal = SignalData(
+                callId = "group_ctrl",
+                type = SignalType.GROUP_RENAME,
+                payload = gson.toJson(GroupRenamePacket(groupId, newName))
+            )
+            members.forEach { if (it != currentUserId) signalRepository.sendSignal(it, renameSignal) }
+            
+            messageDao.insertMessage(ChatMessage(
+                fromUserId = currentUserId,
+                toUserId = "",
+                groupId = groupId,
+                text = "SYSTEM_GROUP_RENAMED:$newName",
+                timestamp = System.currentTimeMillis(),
+                type = MessageType.SYSTEM
+            ))
         }
     }
 
@@ -409,13 +511,10 @@ class ContactsViewModel @Inject constructor(
     }
     
     fun isContact(userId: String): Boolean {
-        return uiState.value.chats.any { it.contact.id == userId && it.isContact }
+        return uiState.value.chats.any { it.contact?.id == userId && it.isContact }
     }
 
-    /**
-     * Экспорт контактов. Принимает CharArray пароля.
-     */
-    fun exportContacts(uri: Uri, passwordChars: CharArray?) {
+    fun exportContacts(uri: Uri, passwordChars: CharArray?, includeHistory: Boolean) {
         viewModelScope.launch {
             val outputStream = try {
                 context.contentResolver.openOutputStream(uri)
@@ -427,19 +526,15 @@ class ContactsViewModel @Inject constructor(
                 return@launch
             }
             
-            val success = userRepository.exportContacts(outputStream, passwordChars)
+            val success = userRepository.exportContacts(outputStream, passwordChars, includeHistory)
             if (success) {
                 _toastEvent.emit(context.getString(R.string.contacts_export_success))
             } else {
                 _toastEvent.emit(context.getString(R.string.contacts_export_failed))
             }
-            // Пароль затирается внутри userRepository.exportContacts
         }
     }
 
-    /**
-     * Импорт контактов. Принимает CharArray пароля.
-     */
     fun importContacts(uri: Uri, passwordChars: CharArray?, onPasswordRequired: () -> Unit) {
         viewModelScope.launch {
             val inputStream = try {
@@ -458,8 +553,8 @@ class ContactsViewModel @Inject constructor(
                 1 -> onPasswordRequired()
                 2 -> _toastEvent.emit(context.getString(R.string.contacts_import_error_data))
                 3 -> _toastEvent.emit(context.getString(R.string.contacts_import_error_mnemonic))
+                4 -> _toastEvent.emit(context.getString(R.string.contacts_import_success_contacts_only))
             }
-            // Пароль затирается внутри userRepository.importContacts
         }
     }
 }

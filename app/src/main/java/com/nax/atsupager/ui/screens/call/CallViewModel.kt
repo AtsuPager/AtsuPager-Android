@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.call
 
 import android.content.Context
@@ -193,7 +198,8 @@ class CallViewModel @Inject constructor(
                         isVideoCall = info.isVideo, 
                         isCameraOn = info.isVideo,
                         isRemoteCameraOn = info.isVideo,
-                        isRemoteMicOn = info.isRemoteMicOn
+                        isRemoteMicOn = info.isRemoteMicOn,
+                        username = if (info.callerName?.startsWith("User_") == false) info.callerName else null
                     ) }
                     
                     updateInitialOffer(info.initialOffer)
@@ -205,6 +211,10 @@ class CallViewModel @Inject constructor(
                     }
                     if (_uiState.value.isRemoteMicOn != info.isRemoteMicOn) {
                         _uiState.update { it.copy(isRemoteMicOn = info.isRemoteMicOn) }
+                    }
+                    if ((_uiState.value.username == null || _uiState.value.username!!.startsWith("User_")) && 
+                        info.callerName != null && !info.callerName.startsWith("User_")) {
+                        _uiState.update { it.copy(username = info.callerName) }
                     }
                 }
             }
@@ -333,9 +343,22 @@ class CallViewModel @Inject constructor(
     private fun loadUserInfo(userId: String) {
         viewModelScope.launch {
             try {
-                val user = userRepository.getUser(userId)
-                val isContact = contactsRepository.isContact(userId)
-                _uiState.update { it.copy(username = user?.username, isContact = isContact) }
+                val contact = contactsRepository.getContact(userId)
+                if (contact != null) {
+                    _uiState.update { it.copy(username = contact.username, isContact = true) }
+                } else {
+                    val currentUsername = _uiState.value.username
+                    if (currentUsername == null || currentUsername.startsWith("User_")) {
+                        val user = userRepository.getUser(userId)
+                        if (user != null && !user.username.startsWith("User_")) {
+                            _uiState.update { it.copy(username = user.username, isContact = false) }
+                        } else if (currentUsername == null) {
+                            _uiState.update { it.copy(username = user?.username, isContact = false) }
+                        }
+                    } else {
+                        _uiState.update { it.copy(isContact = false) }
+                    }
+                }
             } catch (e: Exception) { Log.e(TAG, "Failed to load user info", e) }
         }
     }
@@ -417,9 +440,7 @@ class CallViewModel @Inject constructor(
                 withTimeout(3000) {
                     iceServers = iceServerRepository.getIceServers()
                 }
-                Log.d(TAG, "Loaded ${iceServers.size} ICE servers")
             } catch (e: Exception) {
-                Log.e(TAG, "ICE fetch failed/timeout, using fallback", e)
                 iceServers = listOf(PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer())
             } finally {
                 onLoaded()
@@ -447,9 +468,8 @@ class CallViewModel @Inject constructor(
     private fun startConnectingTimer() {
         connectingTimeoutJob?.cancel()
         connectingTimeoutJob = viewModelScope.launch {
-            delay(25000) // 25 секунд на обычную установку связи перед переходом в Stealth Mode
+            delay(25000) 
             if (uiState.value.callState != CallState.CONNECTED && !isForceTcpMode) {
-                Log.w(TAG, "Connection slow, initiating Site-Masking Mode (TCP 8443)")
                 initiateIceRestart(forceStealth = true)
             }
         }
@@ -567,8 +587,10 @@ class CallViewModel @Inject constructor(
             val manager = webRtcManager ?: return@launch
             val isLocalActive = uiState.value.isLocalCameraActive && !uiState.value.isCameraPaused
             val isRemoteActive = uiState.value.isRemoteCameraOn
+            val isFront = uiState.value.isFrontCamera
+            
             val trackId = remoteTrack?.id() ?: "null"
-            val stateId = "top_${isVideoOnTop}_local_${isLocalActive}_remote_${isRemoteActive}_track_$trackId" + (if (isDualPiP) "_dual" else "")
+            val stateId = "top_${isVideoOnTop}_local_${isLocalActive}_remote_${isRemoteActive}_track_$trackId" + (if (isDualPiP) "_dual" else "") + "_front_$isFront"
             
             if (stateId == lastSinksState) return@launch
             lastSinksState = stateId
@@ -582,15 +604,33 @@ class CallViewModel @Inject constructor(
             pipRenderer.clearImage()
             
             if (isDualPiP) {
-                if (isLocalActive) manager.setLocalVideoSink(pipRenderer)
-                if (remoteTrack != null && isRemoteActive) remoteTrack.addSink(bgRenderer)
+                if (isLocalActive) {
+                    pipRenderer.setMirror(isFront)
+                    manager.setLocalVideoSink(pipRenderer)
+                }
+                if (remoteTrack != null && isRemoteActive) {
+                    bgRenderer.setMirror(false)
+                    remoteTrack.addSink(bgRenderer)
+                }
             } else {
                 if (isVideoOnTop) {
-                    if (isLocalActive) manager.setLocalVideoSink(pipRenderer)
-                    if (remoteTrack != null && isRemoteActive) remoteTrack.addSink(bgRenderer)
+                    if (isLocalActive) {
+                        pipRenderer.setMirror(isFront)
+                        manager.setLocalVideoSink(pipRenderer)
+                    }
+                    if (remoteTrack != null && isRemoteActive) {
+                        bgRenderer.setMirror(false)
+                        remoteTrack.addSink(bgRenderer)
+                    }
                 } else {
-                    if (isLocalActive) manager.setLocalVideoSink(bgRenderer)
-                    if (remoteTrack != null && isRemoteActive) remoteTrack.addSink(pipRenderer)
+                    if (isLocalActive) {
+                        bgRenderer.setMirror(isFront)
+                        manager.setLocalVideoSink(bgRenderer)
+                    }
+                    if (remoteTrack != null && isRemoteActive) {
+                        pipRenderer.setMirror(false)
+                        remoteTrack.addSink(pipRenderer)
+                    }
                 }
             }
         }
@@ -602,7 +642,8 @@ class CallViewModel @Inject constructor(
             _uiState.update { it.copy(isAnswering = true, callState = CallState.CONNECTING) }
             return 
         }
-        isAnsweringPending = false; callAudioManager.stopTones()
+        isAnsweringPending = false
+        callAudioManager.stopTones()
         _uiState.update { it.copy(isAnswering = true, callState = CallState.CONNECTING) }
         webRtcManager?.toggleCamera(uiState.value.isCameraOn)
         webRtcManager?.toggleMicrophone(uiState.value.isMicOn)
@@ -623,8 +664,6 @@ class CallViewModel @Inject constructor(
     fun onHangup(isUserInitiated: Boolean = true, isTimeout: Boolean = false) {
         if (isHangupSent.getAndSet(true)) return
         
-        Log.d(TAG, "onHangup: isUserInitiated=$isUserInitiated, isTimeout=$isTimeout")
-
         _uiState.update { it.copy(
             isMicOn = false, 
             isCameraOn = false, 
@@ -696,7 +735,7 @@ class CallViewModel @Inject constructor(
                 val user = userRepository.getUser(targetUserId)
                 if (user != null) {
                     contactsRepository.addContact(user)
-                    _uiState.update { it.copy(isContact = true) }
+                    _uiState.update { it.copy(isContact = true, username = user.username) }
                 }
             } catch (e: Exception) { Log.e(TAG, "Failed to load user info", e) }
         }
@@ -733,7 +772,10 @@ class CallViewModel @Inject constructor(
         }
     }
     
-    override fun onCameraSwitched(isFront: Boolean) { _uiState.update { it.copy(isFrontCamera = isFront) } }
+    override fun onCameraSwitched(isFront: Boolean) { 
+        _uiState.update { it.copy(isFrontCamera = isFront) } 
+        updateSinks(uiState.value.isLocalVideoOnTop, uiState.value.remoteVideoTrack)
+    }
     
     override fun onCameraStateChanged(isActive: Boolean) {
         _uiState.update { it.copy(isLocalCameraActive = isActive) }
@@ -749,7 +791,11 @@ class CallViewModel @Inject constructor(
             when (state) {
                 PeerConnection.IceConnectionState.CONNECTED -> {
                     connectingTimeoutJob?.cancel()
-                    reconnectionJob?.cancel(); iceRestartCount = 0; callTimeoutJob?.cancel(); callAudioManager.stopTones(); callAudioManager.acquireWakeLock()
+                    reconnectionJob?.cancel()
+                    iceRestartCount = 0
+                    callTimeoutJob?.cancel()
+                    callAudioManager.stopTones()
+                    callAudioManager.acquireWakeLock()
                     _uiState.update { it.copy(callState = CallState.CONNECTED) }
                     
                     callStatusManager.setCallConnected(true)
@@ -768,7 +814,11 @@ class CallViewModel @Inject constructor(
                 PeerConnection.IceConnectionState.FAILED -> initiateIceRestart()
                 PeerConnection.IceConnectionState.DISCONNECTED -> {
                     reconnectionJob?.cancel()
-                    reconnectionJob = launch { _uiState.update { it.copy(callState = CallState.RECONNECTING) }; delay(5000); if (isActive) initiateIceRestart() }
+                    reconnectionJob = launch { 
+                        _uiState.update { it.copy(callState = CallState.RECONNECTING) }
+                        delay(5000)
+                        if (isActive) initiateIceRestart() 
+                    }
                 }
                 else -> {}
             }
@@ -780,15 +830,10 @@ class CallViewModel @Inject constructor(
         
         if (iceRestartCount < MAX_ICE_RESTARTS || forceStealth) { 
             if (!forceStealth) iceRestartCount++
-            
-            Log.d(TAG, "Initiating ICE Restart ($iceRestartCount/$MAX_ICE_RESTARTS). StealthMode=$forceStealth")
-            
             if (forceStealth && !isForceTcpMode) {
-                Log.w(TAG, "Switching to Site-Masking Mode (TCP 8443)")
                 isForceTcpMode = true
                 webRtcManager?.updateConfiguration(forceTcp = true)
             }
-
             _uiState.update { it.copy(callState = CallState.RECONNECTING) }
             webRtcManager?.restartIce()
             webRtcManager?.createOffer() 
@@ -815,18 +860,12 @@ class CallViewModel @Inject constructor(
 
     private fun onHangupReceived() { 
         if (isHangupSent.getAndSet(true)) return
-        Log.d(TAG, "onHangupReceived")
         
-        // Если звонок прерван на стадии входящего — это пропущенный
         if (uiState.value.callState == CallState.INCOMING_CALL) {
             viewModelScope.launch(Dispatchers.IO) {
                 val lastIncoming = messageDao.getLastMessageByType(targetUserId, MessageType.INCOMING_CALL)
                 if (lastIncoming != null && (lastIncoming.text == "CALL_INCOMING" || lastIncoming.text == context.getString(R.string.incoming_call))) {
-                    messageDao.updateMessageTypeAndText(
-                        lastIncoming.id, 
-                        MessageType.MISSED_CALL, 
-                        "CALL_MISSED"
-                    )
+                    messageDao.updateMessageTypeAndText(lastIncoming.id, MessageType.MISSED_CALL, "CALL_MISSED")
                 }
             }
         }
@@ -847,7 +886,6 @@ class CallViewModel @Inject constructor(
 
     override fun onCleared() { 
         super.onCleared()
-        Log.d(TAG, "onCleared")
         try {
             bgRenderer.release()
             pipRenderer.release()
@@ -889,9 +927,7 @@ class CallViewModel @Inject constructor(
                         try {
                             val payload = gson.toJson(candidatesToSend.map { IceCandidateModel(it.sdpMid, it.sdpMLineIndex, it.sdp) })
                             signalRepository.sendSignal(targetUserId, SignalData(callId = callId!!, type = SignalType.ICE_CANDIDATE, payload = payload))
-                        } catch (e: Exception) { 
-                            Log.e(TAG, "Error sending candidates", e)
-                        }
+                        } catch (e: Exception) { }
                     }
                     delay(500)
                 }

@@ -8,6 +8,8 @@ import java.util.UUID
 
 enum class MessageType {
     @SerializedName("TEXT") TEXT,
+    @SerializedName("SYSTEM") SYSTEM,
+    @SerializedName("GAME_INVITE") GAME_INVITE,
     @SerializedName("OUTGOING_CALL") OUTGOING_CALL,
     @SerializedName("INCOMING_CALL") INCOMING_CALL,
     @SerializedName("MISSED_CALL") MISSED_CALL,
@@ -35,6 +37,10 @@ data class ChatMessage(
     @ColumnInfo(name = "toUserId")
     @SerializedName("toUserId")
     val toUserId: String,
+
+    @ColumnInfo(name = "groupId")
+    @SerializedName("groupId")
+    val groupId: String? = null,
 
     @ColumnInfo(name = "text")
     @SerializedName("text")
@@ -98,5 +104,21 @@ data class ChatMessage(
 
     @ColumnInfo(name = "remoteRead")
     @SerializedName("remoteRead")
-    val remoteRead: Boolean = false
+    val remoteRead: Boolean = false,
+
+    @ColumnInfo(name = "replyToId")
+    @SerializedName("replyToId")
+    val replyToId: String? = null,
+
+    @ColumnInfo(name = "replyToName")
+    @SerializedName("replyToName")
+    val replyToName: String? = null,
+
+    @ColumnInfo(name = "replyToText")
+    @SerializedName("replyToText")
+    val replyToText: String? = null,
+
+    @ColumnInfo(name = "replyToType")
+    @SerializedName("replyToType")
+    val replyToType: MessageType? = null
 )

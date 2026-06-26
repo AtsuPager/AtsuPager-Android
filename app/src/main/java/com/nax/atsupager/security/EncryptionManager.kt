@@ -49,6 +49,17 @@ data class StreamingEncryptionResult(
     }
 }
 
+/**
+ * Вспомогательный класс для одновременной записи в несколько потоков.
+ */
+private class MultiOutputStream(private val streams: List<OutputStream>) : OutputStream() {
+    override fun write(b: Int) { streams.forEach { it.write(b) } }
+    override fun write(b: ByteArray) { streams.forEach { it.write(b) } }
+    override fun write(b: ByteArray, off: Int, len: Int) { streams.forEach { it.write(b, off, len) } }
+    override fun flush() { streams.forEach { it.flush() } }
+    override fun close() { streams.forEach { it.close() } }
+}
+
 @Singleton
 class EncryptionManager @Inject constructor(
     private val keyStorageManager: KeyStorageManager
@@ -102,31 +113,21 @@ class EncryptionManager @Inject constructor(
         }
     }
 
-    /**
-     * HKDF implementation (Extract-and-Expand) according to RFC 5869.
-     */
     private fun hkdfDerive(sharedSecret: ByteArray, info: String): ByteArray {
         val hmac = Mac.getInstance("HmacSHA256")
-        
-        // Step 1: Extract (empty salt for ECDH)
         val salt = ByteArray(32) 
         hmac.init(SecretKeySpec(salt, "HmacSHA256"))
         val prk = hmac.doFinal(sharedSecret)
 
-        // Step 2: Expand
         hmac.init(SecretKeySpec(prk, "HmacSHA256"))
         hmac.update(info.toByteArray(StandardCharsets.UTF_8))
         hmac.update(0x01.toByte())
         
         val okm = hmac.doFinal()
-        
         SecureDataHandler.wipe(prk)
         return okm
     }
 
-    /**
-     * Key derivation from password (CharArray). Safely wipes spec after use.
-     */
     fun deriveKeyFromPassword(password: CharArray, salt: ByteArray): SecretKey {
         val spec = PBEKeySpec(password, salt, 600000, 256)
         return try {
@@ -177,6 +178,68 @@ class EncryptionManager @Inject constructor(
         }
     }
 
+    /**
+     * Создает случайный ключ и IV для группового/общего шифрования файла.
+     */
+    fun prepareGroupStreamingEncryption(): StreamingEncryptionResult? {
+        return try {
+            val fileKey = ByteArray(32).apply { SecureRandom().nextBytes(this) }
+            val iv = ByteArray(12).apply { SecureRandom().nextBytes(this) }
+            val aesKey = SecretKeySpec(fileKey, "AES")
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, aesKey, GCMParameterSpec(128, iv))
+            
+            val keyBase64 = Base64.encodeToString(fileKey, Base64.NO_WRAP)
+            StreamingEncryptionResult(cipher, iv, keyBase64)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to prepare group streaming encryption", e)
+            null
+        }
+    }
+
+    /**
+     * Создает поток, который шифрует данные сразу для двух целей (хранилище и транспорт).
+     */
+    fun getDualEncryptingStream(
+        storageOutput: OutputStream, storageKey: ByteArray,
+        transportOutput: OutputStream, transportResult: StreamingEncryptionResult
+    ): OutputStream? {
+        return try {
+            val storageStream = getEncryptingStreamForStorage(storageOutput, storageKey) ?: return null
+            
+            transportOutput.write(transportResult.iv)
+            val transportStream = CipherOutputStream(transportOutput, transportResult.cipher)
+            
+            MultiOutputStream(listOf(storageStream, transportStream))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create dual encrypting stream", e)
+            null
+        }
+    }
+
+    /**
+     * Перешифровывает файл из локального ключа в целевой транспортный ключ.
+     */
+    fun reEncryptFile(source: File, sourceKey: ByteArray, targetFile: File, targetResult: StreamingEncryptionResult): Boolean {
+        return try {
+            val fis = FileInputStream(source)
+            val input = getDecryptingStreamFromStorage(fis, sourceKey) ?: return false
+            val fos = FileOutputStream(targetFile)
+            fos.write(targetResult.iv)
+            val output = CipherOutputStream(fos, targetResult.cipher)
+            
+            input.use { i ->
+                output.use { o ->
+                    i.copyTo(o)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Re-encryption failed", e)
+            false
+        }
+    }
+
     fun decryptFileToByteArray(file: File, key: ByteArray): ByteArray? {
         if (!file.exists() || file.length() < 28) return null
         return try {
@@ -211,7 +274,6 @@ class EncryptionManager @Inject constructor(
             val ephemeralPubKeyBase64 = Base64.encodeToString(ephemeralKey.pubKey, Base64.NO_WRAP)
             val timestamp = System.currentTimeMillis()
 
-            // Bind the signature to the data, ephemeral key, and timestamp
             val signature = sign("$encDataBase64|$ephemeralPubKeyBase64|$timestamp", senderUserId)
 
             SecureDataHandler.wipe(sharedKey)
@@ -253,28 +315,15 @@ class EncryptionManager @Inject constructor(
 
     fun decryptToByteArray(payload: EncryptedPayload, recipientUserId: String, senderPublicKeyBase64: String? = null): ByteArray? {
         return try {
-            val finalSenderPubKey = senderPublicKeyBase64 ?: throw Exception("Sender public key required for verification")
+            val finalSenderPubKey = senderPublicKeyBase64 ?: throw Exception("Sender public key required")
+            val signature = payload.signature ?: return null
             
-            val signature = payload.signature ?: run {
-                Log.e(TAG, "CRITICAL: Signature is missing! Packet dropped.")
-                return null
-            }
-            
-            // Replay protection: timestamp verification (5-minute window)
             val now = System.currentTimeMillis()
-            if (Math.abs(now - payload.timestamp) > 300000) {
-                Log.e(TAG, "CRITICAL: Message expired or replay attack detected!")
-                return null
-            }
+            if (Math.abs(now - payload.timestamp) > 300000) return null
 
-            // Verification of the bound signature
-            if (!verify("${payload.encryptedData}|${payload.encryptedKey}|${payload.timestamp}", signature, finalSenderPubKey)) {
-                Log.e(TAG, "CRITICAL: Signature verification failed!")
-                return null
-            }
+            if (!verify("${payload.encryptedData}|${payload.encryptedKey}|${payload.timestamp}", signature, finalSenderPubKey)) return null
 
             val sharedKey = getSharedSecret(recipientUserId, payload.encryptedKey) ?: return null
-
             val aesKey = SecretKeySpec(sharedKey, "AES")
             val result = decryptWithAesToByteArray(Base64.decode(payload.encryptedData, Base64.NO_WRAP), aesKey)
             SecureDataHandler.wipe(sharedKey)

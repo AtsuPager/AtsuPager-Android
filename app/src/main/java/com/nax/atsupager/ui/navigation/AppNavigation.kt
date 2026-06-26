@@ -51,7 +51,6 @@ fun AppNavigation(
     
     val callViewModel: CallViewModel = hiltViewModel()
 
-    // Универсальное действие для перехода "Домой"
     val navigateToHomeAction: (Int) -> Unit = { tab ->
         val targetTab = if (tab == -1) {
             if (totalUnread > 0 || hasChats) 0 else 1
@@ -59,7 +58,6 @@ fun AppNavigation(
         
         val route = Screen.Contacts.createRoute(targetTab)
         navController.navigate(route) {
-            // Очищаем ВЕСЬ стек до самого начала, чтобы избежать накопления окон
             popUpTo(navController.graph.id) {
                 inclusive = true
             }
@@ -102,7 +100,6 @@ fun AppNavigation(
                     }
                     
                     navController.navigate(route) {
-                        // Обязательно удаляем Splash из истории
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -138,7 +135,6 @@ fun AppNavigation(
                     initialTab = tab,
                     onNavigateToMain = { route ->
                         navController.navigate(route) {
-                            // Не удаляем Contacts, чтобы можно было вернуться назад
                             launchSingleTop = true
                         }
                     },
@@ -197,9 +193,22 @@ fun AppNavigation(
                     callStatusManager = callStatusManager
                 )
             }
+
+            composable(
+                route = Screen.GroupChat.route,
+                arguments = listOf(navArgument("groupId") { type = NavType.StringType })
+            ) {
+                MainScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCall = { _, _ -> callStatusManager.restore() },
+                    onNavigateToGames = {},
+                    onOpenSettings = onOpenSettings,
+                    onNavigateToHome = navigateToHomeAction,
+                    callStatusManager = callStatusManager
+                )
+            }
         }
 
-        // Окно звонка
         AnimatedVisibility(
             visible = activeCall != null && !isMinimized,
             enter = fadeIn(animationSpec = tween(300)),

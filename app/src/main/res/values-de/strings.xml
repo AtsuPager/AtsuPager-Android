@@ -270,4 +270,47 @@
     <string name="invalid_code">Ungültiger oder abgelaufener Code</string>
     <string name="code_activated">Zugriff erfolgreich aktiviert!</string>
 
+    <string name="group">Gruppe</string>
+    <string name="group_name_hint">Gruppenname eingeben</string>
+    <string name="system_joined_group">Du bist der Gruppe %1$s beigetreten</string>
+    <string name="group_members">Gruppenmitglieder</string>
+    <string name="leave_group">Gruppe verlassen</string>
+    <string name="leave_group_confirm">Bist du sicher, dass du diese Gruppe verlassen möchtest? Wenn du der Besitzer bist, wird die Führung an ein anderes Mitglied übertragen.</string>
+    <string name="owner_label">Besitzer</string>
+    <string name="you_label">Du</string>
+    <string name="kick_member_confirm">%1$s aus der Gruppe entfernen?</string>
+    <string name="error_group_not_found">Gruppe nicht gefunden</string>
+    <string name="add_member">Mitglied hinzufügen</string>
+    <string name="system_group_created">Gruppe erstellt</string>
+    <string name="system_member_joined">%1$s ist der Gruppe beigetreten</string>
+    <string name="system_member_left">%1$s hat die Gruppe verlassen</string>
+    <string name="system_member_kicked">%1$s wurde aus der Gruppe entfernt</string>
+    <string name="system_new_owner">%1$s ist jetzt der Gruppenbesitzer</string>
+    <string name="system_you_kicked">Du wurdest aus der Gruppe entfernt</string>
+    <string name="audio_message">Sprachnachricht</string>
+    <string name="image_message">Foto</string>
+    <string name="video_message">Video</string>
+    <string name="file">Datei</string>
+    <string name="system_group_renamed">Gruppe umbenannt in: %1$s</string>
+    <string name="create_group">Gruppe erstellen</string>
+    <string name="rename_group">Gruppe umbenennen</string>
+
+    <string name="export_profile_title">Profil exportieren</string>
+    <string name="import_profile_title">Profil importieren</string>
+    <string name="include_history">Chatverlauf einschließen</string>
+    <string name="include_history_desc">Einschließlich aller Textnachrichten und Systembenachrichtigungen</string>
+
+    <string name="contacts_import_success_contacts_only">Import erfolgreich: nur Kontakte wiederhergestellt (andere ID)</string>
+
+    <string name="error_password_short">Passwort muss mindestens 8 Zeichen lang sein</string>
+
+    <string name="tab_groups">Gruppen</string>
+
+    <string name="delete_group">Gruppe löschen</string>
+    <string name="delete_group_confirm">Gruppe für alle löschen? Alle Nachrichten und Medien werden für alle Mitglieder gelöscht.</string>
+
+    <string name="menu_sounds">Töne</string>
+
+    <string name="start_new_game">Neues Spiel starten</string>
+
 </resources>

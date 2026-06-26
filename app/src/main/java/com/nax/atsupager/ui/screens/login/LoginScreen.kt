@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.login
 
 import androidx.compose.animation.*
@@ -29,6 +34,7 @@ import coil.compose.AsyncImage
 import com.nax.atsupager.R
 import com.nax.atsupager.security.KeyboardSecurity
 import com.nax.atsupager.ui.components.StyledTextField
+import com.nax.atsupager.ui.components.LanguageSelectionDialog
 
 enum class LoginMode {
     CHOOSE, CREATE, IMPORT, IDENTITY_READY
@@ -36,7 +42,7 @@ enum class LoginMode {
 
 @Composable
 fun LoginScreen(
-    onLoginComplete: () -> Unit, // Оставляем для совместимости, но используем viewModel.completeLogin
+    onLoginComplete: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     var mode by remember { mutableStateOf(LoginMode.CHOOSE) }
@@ -156,7 +162,7 @@ fun LoginScreen(
                                 Button(
                                     onClick = { 
                                         viewModel.importIdentity(mnemonicInput.toCharArray(), usernameInput)
-                                        mnemonicInput = "" // Немедленно сбрасываем состояние в UI
+                                        mnemonicInput = ""
                                     },
                                     modifier = Modifier.fillMaxWidth().height(56.dp),
                                     enabled = uiState !is LoginUiState.Loading && mnemonicInput.isNotBlank()
@@ -319,48 +325,4 @@ fun LoginLogoHeader(onLanguageClick: () -> Unit) {
             )
         }
     }
-}
-
-@Composable
-fun LanguageSelectionDialog(currentLanguage: String, onDismiss: () -> Unit, onLanguageSelected: (String) -> Unit) {
-    val languages = listOf(
-        "system" to stringResource(R.string.system_default),
-        "en" to "English",
-        "ru" to "Русский",
-        "de" to "Deutsch",
-        "fr" to "Français",
-        "es" to "Español",
-        "it" to "Italiano",
-        "cs" to "Čeština"
-    )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.choose_language)) },
-        text = {
-            Column {
-                languages.forEach { (code, name) ->
-                    val isSelected = if (code == "system") currentLanguage == "system" else currentLanguage.startsWith(code)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onLanguageSelected(code) }
-                            .padding(vertical = 4.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = isSelected, 
-                            onClick = { onLanguageSelected(code) },
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = name, 
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
-    )
 }

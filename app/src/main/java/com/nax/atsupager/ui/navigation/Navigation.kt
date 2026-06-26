@@ -7,6 +7,9 @@ sealed class Screen(val route: String) {
         fun createRoute(userId: String, call: String? = null) = 
             if (call != null) "main/$userId?call=$call" else "main/$userId"
     }
+    object GroupChat : Screen("group_chat/{groupId}") {
+        fun createRoute(groupId: String) = "group_chat/$groupId"
+    }
     object Call : Screen("call")
     object Contacts : Screen("contacts?tab={tab}") {
         fun createRoute(tab: Int? = null) = 

@@ -20,10 +20,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.nax.atsupager.R
+import com.nax.atsupager.data.db.MessageType
 import com.nax.atsupager.security.KeyboardSecurity
 import com.nax.atsupager.ui.components.StyledTextField
 
@@ -39,34 +41,112 @@ fun MessageInput(
     onCancelRecording: () -> Unit,
     onSendRecordedAudio: () -> Unit,
     onTakePhoto: () -> Unit,
-    onCaptureVideo: () -> Unit
+    onCaptureVideo: () -> Unit,
+    onCaptionChange: (String) -> Unit,
+    onCancelAttachment: () -> Unit,
+    onSendAttachment: () -> Unit
 ) {
     val isRecordingOrReady = uiState.isRecording || uiState.isAudioReadyToSend
+    val hasPendingAttachment = uiState.pendingAttachment != null
 
-    AnimatedContent(
-        targetState = isRecordingOrReady,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-        },
-        label = "MessageInputSwitch"
-    ) { recordingMode ->
-        if (recordingMode) {
-            RecordingLayout(
-                uiState = uiState,
-                onCancel = onCancelRecording,
-                onStop = onStopRecording,
-                onSend = onSendRecordedAudio
+    Column {
+        if (hasPendingAttachment && uiState.pendingAttachment != null) {
+            AttachmentPreview(
+                attachment = uiState.pendingAttachment,
+                onCaptionChange = onCaptionChange,
+                onCancel = onCancelAttachment,
+                onSend = onSendAttachment
             )
         } else {
-            InputLayout(
-                text = text,
-                onTextChange = onTextChange,
-                onSend = onSend,
-                onAttachFile = onAttachFile,
-                onTakePhoto = onTakePhoto,
-                onCaptureVideo = onCaptureVideo,
-                onStartRecording = onStartRecording
-            )
+            AnimatedContent(
+                targetState = isRecordingOrReady,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                },
+                label = "MessageInputSwitch"
+            ) { recordingMode ->
+                if (recordingMode) {
+                    RecordingLayout(
+                        uiState = uiState,
+                        onCancel = onCancelRecording,
+                        onStop = onStopRecording,
+                        onSend = onSendRecordedAudio
+                    )
+                } else {
+                    InputLayout(
+                        text = text,
+                        onTextChange = onTextChange,
+                        onSend = onSend,
+                        onAttachFile = onAttachFile,
+                        onTakePhoto = onTakePhoto,
+                        onCaptureVideo = onCaptureVideo,
+                        onStartRecording = onStartRecording
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AttachmentPreview(
+    attachment: PendingAttachment,
+    onCaptionChange: (String) -> Unit,
+    onCancel: () -> Unit,
+    onSend: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = when (attachment.type) {
+                        MessageType.IMAGE -> Icons.Default.Image
+                        MessageType.VIDEO -> Icons.Default.Videocam
+                        else -> Icons.Default.InsertDriveFile
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = attachment.fileName,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onCancel) {
+                    Icon(Icons.Default.Close, contentDescription = null)
+                }
+            }
+            
+            Row(verticalAlignment = Alignment.Bottom) {
+                StyledTextField(
+                    value = attachment.caption,
+                    onValueChange = onCaptionChange,
+                    placeholderText = stringResource(R.string.add_caption_hint),
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = false,
+                    keyboardOptions = KeyboardSecurity.secureChatOptions
+                )
+                Spacer(Modifier.width(8.dp))
+                IconButton(
+                    onClick = onSend,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
         }
     }
 }

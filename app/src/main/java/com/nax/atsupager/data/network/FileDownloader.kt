@@ -95,21 +95,30 @@ class FileDownloader @Inject constructor(
                 val currentUserId = userRepository.getCurrentUserId() ?: throw Exception("Unauthorized")
                 val request = Request.Builder().url(url).build()
                 val response = okHttpClient.newCall(request).execute()
-                
+
                 if (!response.isSuccessful) throw IOException("Download failed")
                 val responseBody = response.body ?: throw IOException("Empty body")
-                
+
                 val totalBytes = if (responseBody.contentLength() > 0) responseBody.contentLength() else (message.fileSize ?: -1L)
                 val networkInput = responseBody.byteStream()
                 val progressInput = createProgressInputStream(networkInput, totalBytes) { p ->
                     _downloadProgress.update { it + (message.id to DownloadProgress(p, DownloadStatus.DOWNLOADING)) }
                 }
 
+                // Групповой или P2P транспортный поток
                 val transportStream = if (!message.fileEncryptionKey.isNullOrEmpty()) {
-                    val partnerPubKey = userRepository.getUser(message.fromUserId)?.publicKey 
-                        ?: throw Exception("Partner public key not found for ${message.fromUserId}")
-                    
-                    encryptionManager.getDecryptingStreamForTransport(progressInput, message.fileEncryptionKey!!, currentUserId, partnerPubKey)
+                    val encKey = message.fileEncryptionKey!!
+                    if (message.groupId != null || encKey.startsWith("AES:")) {
+                        // Для групп или мультирассылки ключ — это прямой AES ключ (Base64)
+                        val keyToDecode = if (encKey.startsWith("AES:")) encKey.substring(4) else encKey
+                        val rawKey = Base64.decode(keyToDecode, Base64.NO_WRAP)
+                        encryptionManager.getDecryptingStreamFromStorage(progressInput, rawKey)
+                    } else {
+                        // Для P2P ключ — это эфемерный публичный ключ для ECDH
+                        val partnerPubKey = userRepository.getUser(message.fromUserId)?.publicKey
+                            ?: throw Exception("Partner public key not found")
+                        encryptionManager.getDecryptingStreamForTransport(progressInput, encKey, currentUserId, partnerPubKey)
+                    }
                 } else {
                     progressInput
                 } ?: throw Exception("Decryption setup failed")
@@ -117,11 +126,11 @@ class FileDownloader @Inject constructor(
                 val digest = MessageDigest.getInstance("SHA-256")
                 val digestingInput = DigestInputStream(transportStream, digest)
 
-                val chatDir = sessionManager.getMediaDir(message.fromUserId, "incoming")
+                val chatDir = sessionManager.getMediaDir(message.groupId ?: message.fromUserId, "incoming")
                 val secureFile = File(chatDir, "file_${message.id}.enc")
-                
+
                 localKey = keyStorageManager.getMediaEncryptionKey(currentUserId)
-                
+
                 FileOutputStream(secureFile).use { fos ->
                     val localEncryptingStream = encryptionManager.getEncryptingStreamForStorage(fos, localKey!!)
                         ?: throw Exception("Local encryption failed")
@@ -143,7 +152,14 @@ class FileDownloader @Inject constructor(
 
                 _downloadProgress.update { it + (message.id to DownloadProgress(1f, DownloadStatus.DOWNLOADING)) }
                 messageDao.updateLocalFilePath(message.id, secureFile.absolutePath)
-                confirmDownload(url)
+
+                // Проверяем, является ли файл общим (группа или мультирассылка)
+                val isShared = message.groupId != null || message.fileEncryptionKey?.startsWith("AES:") == true
+                if (!isShared) {
+                    confirmDownload(url)
+                } else {
+                    Log.d(TAG, "Shared file kept on server for other members: ${message.groupId ?: "multi-fwd"}")
+                }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Download failed", e)
@@ -202,9 +218,16 @@ class FileDownloader @Inject constructor(
                 }
 
                 val transportStream = if (!message.fileEncryptionKey.isNullOrEmpty()) {
-                    val partnerPubKey = userRepository.getUser(message.fromUserId)?.publicKey 
-                        ?: throw Exception("Partner public key not found")
-                    encryptionManager.getDecryptingStreamForTransport(progressInput, message.fileEncryptionKey!!, currentUserId, partnerPubKey)
+                    val encKey = message.fileEncryptionKey!!
+                    if (message.groupId != null || encKey.startsWith("AES:")) {
+                        val keyToDecode = if (encKey.startsWith("AES:")) encKey.substring(4) else encKey
+                        val rawKey = Base64.decode(keyToDecode, Base64.NO_WRAP)
+                        encryptionManager.getDecryptingStreamFromStorage(progressInput, rawKey)
+                    } else {
+                        val partnerPubKey = userRepository.getUser(message.fromUserId)?.publicKey 
+                            ?: throw Exception("Partner public key not found")
+                        encryptionManager.getDecryptingStreamForTransport(progressInput, encKey, currentUserId, partnerPubKey)
+                    }
                 } else {
                     progressInput
                 } ?: throw Exception("Decryption failed")
@@ -228,7 +251,11 @@ class FileDownloader @Inject constructor(
                     }
                     _downloadProgress.update { it + (message.id to DownloadProgress(1f, DownloadStatus.DOWNLOADING)) }
                     messageDao.updateLocalFilePath(message.id, savedUri.toString())
-                    confirmDownload(url)
+                    
+                    val isShared = message.groupId != null || message.fileEncryptionKey?.startsWith("AES:") == true
+                    if (!isShared) {
+                        confirmDownload(url)
+                    }
                 } else {
                     throw Exception("Failed to save to MediaStore")
                 }

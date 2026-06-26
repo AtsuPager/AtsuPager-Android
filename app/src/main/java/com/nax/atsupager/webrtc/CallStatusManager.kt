@@ -21,7 +21,8 @@ data class ActiveCallInfo(
     val callId: String?,
     val initialOffer: String? = null,
     val isEstablished: Boolean = false,
-    val isRemoteMicOn: Boolean = true
+    val isRemoteMicOn: Boolean = true,
+    val callerName: String? = null // Храним имя из сети
 )
 
 enum class CallAction {
@@ -42,7 +43,6 @@ class CallStatusManager @Inject constructor(
     private var activeUserUnreadJob: Job? = null
 
     private val processedGameIds = mutableSetOf<String>()
-
     private var lastEndedCallId: String? = null
     private var lastEndedCallTime: Long = 0L
 
@@ -92,11 +92,7 @@ class CallStatusManager @Inject constructor(
         unreadJob = managerScope.launch {
             val currentUserId = sharedPreferences.getString(AuthRepository.KEY_USER_ID, "") ?: ""
             if (currentUserId.isEmpty()) return@launch
-
-            combine(
-                messageDao.getTotalUnreadCountFlow(currentUserId),
-                messageDao.getLastMessagesForAllChats(currentUserId)
-            ) { unread, chats ->
+            combine(messageDao.getTotalUnreadCountFlow(currentUserId), messageDao.getLastMessagesForAllChats(currentUserId)) { unread, chats ->
                 _totalUnreadCount.value = unread
                 _hasChats.value = chats.isNotEmpty()
             }.collect()
@@ -111,14 +107,10 @@ class CallStatusManager @Inject constructor(
                     val currentUserId = sharedPreferences.getString(AuthRepository.KEY_USER_ID, "") ?: ""
                     if (currentUserId.isNotEmpty()) {
                         activeUserUnreadJob = managerScope.launch {
-                            messageDao.getUnreadCountFromUser(currentUserId, call.userId).collect { count ->
-                                _activeUserUnreadCount.value = count
-                            }
+                            messageDao.getUnreadCountFromUser(currentUserId, call.userId).collect { count -> _activeUserUnreadCount.value = count }
                         }
                     }
-                } else {
-                    _activeUserUnreadCount.value = 0
-                }
+                } else { _activeUserUnreadCount.value = 0 }
             }
         }
     }
@@ -131,7 +123,6 @@ class CallStatusManager @Inject constructor(
     fun observeSignals(signalingClient: SignalingClient) {
         if (observeJob?.isActive == true) return
         if (unreadJob == null || !unreadJob!!.isActive) startUnreadObservation()
-
         observeJob = managerScope.launch {
             signalingClient.incomingSignals.collect { signal ->
                 try {
@@ -139,12 +130,8 @@ class CallStatusManager @Inject constructor(
                     when (signalData.type) {
                         SignalType.GAME_INVITE, SignalType.CHESS_INVITE, SignalType.BACKGAMMON_INVITE, SignalType.CHECKERS_INVITE -> {
                             val payload = signalData.payload ?: return@collect
-                            val invite = if (signalData.type == SignalType.GAME_INVITE) {
-                                gson.fromJson(payload, GameInvitePacket::class.java)
-                            } else {
-                                convertOldInvite(payload, signalData.type, signal.from)
-                            } ?: return@collect
-                            if (processedGameIds.contains(invite.gameId)) return@collect
+                            val invite = if (signalData.type == SignalType.GAME_INVITE) gson.fromJson(payload, GameInvitePacket::class.java) else convertOldInvite(payload, signalData.type, signal.from)
+                            if (invite == null || processedGameIds.contains(invite.gameId)) return@collect
                             val sender = userRepository.getUser(signal.from)
                             showInvite(invite, sender?.username ?: signal.from)
                         }
@@ -161,12 +148,7 @@ class CallStatusManager @Inject constructor(
 
     private fun convertOldInvite(payload: String, type: SignalType, senderId: String): GameInvitePacket? {
         return try {
-            val gameType = when(type) {
-                SignalType.CHESS_INVITE -> "chess"
-                SignalType.BACKGAMMON_INVITE -> "backgammon"
-                SignalType.CHECKERS_INVITE -> "checkers"
-                else -> "chess"
-            }
+            val gameType = when(type) { SignalType.CHESS_INVITE -> "chess"; SignalType.BACKGAMMON_INVITE -> "backgammon"; SignalType.CHECKERS_INVITE -> "checkers"; else -> "chess" }
             val map = gson.fromJson(payload, Map::class.java)
             val gameId = (map["gameId"] as? String) ?: "old_${senderId}_${gameType}"
             GameInvitePacket(gameType, senderId, (map["senderColor"] as? String) ?: "white", gameId, map["state"] as? String ?: map["fen"] as? String)
@@ -175,43 +157,24 @@ class CallStatusManager @Inject constructor(
 
     fun setGameActive(type: String?) { _activeGameType.value = type }
 
-    fun startCall(userId: String, isCaller: Boolean, isVideo: Boolean, callId: String?, initialOffer: String? = null) {
-        _activeCall.value = ActiveCallInfo(userId, isCaller, isVideo, callId, initialOffer, isEstablished = false, isRemoteMicOn = true)
+    fun startCall(userId: String, isCaller: Boolean, isVideo: Boolean, callId: String?, initialOffer: String? = null, callerName: String? = null) {
+        _activeCall.value = ActiveCallInfo(userId, isCaller, isVideo, callId, initialOffer, isEstablished = false, isRemoteMicOn = true, callerName = callerName)
         _isMinimized.value = false
         _callDuration.value = 0L
     }
 
     fun updateCallId(callId: String) { _activeCall.update { it?.copy(callId = callId) } }
-
-    fun setCallConnected(connected: Boolean) {
-        _activeCall.update { it?.copy(isEstablished = connected) }
-        if (connected) startDurationTimer() else durationJob?.cancel()
-    }
-
+    fun setCallConnected(connected: Boolean) { _activeCall.update { it?.copy(isEstablished = connected) }; if (connected) startDurationTimer() else durationJob?.cancel() }
     fun updateRemoteMicState(isOn: Boolean) { _activeCall.update { it?.copy(isRemoteMicOn = isOn) } }
 
     private fun startDurationTimer() {
         if (durationJob?.isActive == true) return
-        durationJob = managerScope.launch {
-            while (isActive) {
-                delay(1000)
-                _callDuration.value += 1
-            }
-        }
+        durationJob = managerScope.launch { while (isActive) { delay(1000); _callDuration.value += 1 } }
     }
 
     fun endCall() {
-        _activeCall.value?.callId?.let { id ->
-            lastEndedCallId = id
-            lastEndedCallTime = System.currentTimeMillis()
-        }
-        _activeCall.value = null
-        _isMinimized.value = false
-        _activeGameType.value = null
-        _callDuration.value = 0L
-        durationJob?.cancel()
-        clearInvite()
-        _acceptedInvite.value = null
+        _activeCall.value?.callId?.let { id -> lastEndedCallId = id; lastEndedCallTime = System.currentTimeMillis() }
+        _activeCall.value = null; _isMinimized.value = false; _activeGameType.value = null; _callDuration.value = 0L; durationJob?.cancel(); clearInvite(); _acceptedInvite.value = null
     }
 
     fun isRecentlyEnded(callId: String?): Boolean {
@@ -225,21 +188,7 @@ class CallStatusManager @Inject constructor(
     fun restore() { _isMinimized.value = false }
     fun showInvite(invite: GameInvitePacket, senderName: String?) { _inviteSenderName.value = senderName; _incomingInvite.value = invite }
     fun clearInvite() { _incomingInvite.value = null; _inviteSenderName.value = null }
-    fun acceptInvite() {
-        _incomingInvite.value?.let { invite ->
-            processedGameIds.add(invite.gameId)
-            _acceptedInvite.value = invite
-            _gameActions.tryEmit(GameAction.ACCEPT(invite))
-            _activeGameType.value = invite.gameType
-        }
-        clearInvite()
-    }
+    fun acceptInvite() { _incomingInvite.value?.let { invite -> processedGameIds.add(invite.gameId); _acceptedInvite.value = invite; _gameActions.tryEmit(GameAction.ACCEPT(invite)); _activeGameType.value = invite.gameType }; clearInvite() }
     fun consumeAcceptedInvite() { _acceptedInvite.value = null }
-    fun rejectInvite() {
-        _incomingInvite.value?.let { invite ->
-            processedGameIds.add(invite.gameId)
-            _gameActions.tryEmit(GameAction.REJECT(invite.gameType))
-        }
-        clearInvite()
-    }
+    fun rejectInvite() { _incomingInvite.value?.let { invite -> processedGameIds.add(invite.gameId); _gameActions.tryEmit(GameAction.REJECT(invite.gameType)) }; clearInvite() }
 }

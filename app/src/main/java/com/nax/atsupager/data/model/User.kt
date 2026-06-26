@@ -9,5 +9,6 @@ data class User(
     @PrimaryKey
     @SerializedName("id") val id: String,
     @SerializedName("username") val username: String,
-    @SerializedName("public_key") val publicKey: String?
+    @SerializedName("public_key") val publicKey: String?,
+    @SerializedName("isMuted") val isMuted: Boolean = false
 )

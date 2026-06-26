@@ -61,7 +61,7 @@ fun CallEventMessage(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
                 tint = tint
             )
             Spacer(modifier = Modifier.width(8.dp))

@@ -27,6 +27,7 @@ import com.nax.atsupager.R
 import com.nax.atsupager.data.db.ChatMessage
 import com.nax.atsupager.security.ClipboardSecurityManager
 import com.nax.atsupager.security.ClipboardUiHelper
+import com.nax.atsupager.ui.screens.main.bubbles.ReplyInputPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -53,6 +54,12 @@ fun ChatLayout(
     onSelectAll: () -> Unit,
     onBulkDelete: () -> Unit,
     onSelectingTextChange: (Long?) -> Unit,
+    onReply: (ChatMessage) -> Unit,
+    onCancelReply: () -> Unit,
+    onScrollToMessage: (String) -> Unit,
+    onCaptionChange: (String) -> Unit,
+    onCancelAttachment: () -> Unit,
+    onSendAttachment: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     val listState = rememberLazyListState()
@@ -144,14 +151,36 @@ fun ChatLayout(
                         onPlayAudio = onPlayAudio,
                         onStopAudio = onStopAudio,
                         onSeekAudio = onSeekAudio,
-                        snackbarHostState = snackbarHostState
+                        snackbarHostState = snackbarHostState,
+                        isGroup = uiState.isGroup,
+                        senderName = if (uiState.isGroup) uiState.memberNames[message.fromUserId] ?: "User_${message.fromUserId.takeLast(4)}" else null,
+                        memberNames = uiState.memberNames,
+                        onReply = onReply,
+                        onScrollToMessage = { remoteId ->
+                            scope.launch {
+                                val targetIndex = uiState.messages.indexOfFirst { it.remoteId == remoteId }
+                                if (targetIndex != -1) {
+                                    listState.animateScrollToItem(targetIndex)
+                                }
+                            }
+                        }
                     )
                 }
             }
             
-            // Контейнер панели ввода. Всегда занимает место.
             Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
-                Box(modifier = Modifier.graphicsLayer { alpha = if (isSelectionMode) 0.6f else 1f }) {
+                Column(modifier = Modifier.graphicsLayer { alpha = if (isSelectionMode) 0.6f else 1f }) {
+                    // Превью ответа над вводом
+                    uiState.replyingTo?.let { replyMsg ->
+                        val senderName = if (uiState.isGroup) uiState.memberNames[replyMsg.fromUserId] 
+                                        else uiState.user?.username
+                        ReplyInputPreview(
+                            message = replyMsg,
+                            onCancel = onCancelReply,
+                            senderName = senderName
+                        )
+                    }
+
                     MessageInput(
                         text = text,
                         uiState = uiState,
@@ -168,11 +197,13 @@ fun ChatLayout(
                         onCancelRecording = onCancelRecording,
                         onSendRecordedAudio = onSendRecordedAudio,
                         onTakePhoto = onTakePhoto,
-                        onCaptureVideo = onCaptureVideo
+                        onCaptureVideo = onCaptureVideo,
+                        onCaptionChange = onCaptionChange,
+                        onCancelAttachment = onCancelAttachment,
+                        onSendAttachment = onSendAttachment
                     )
                 }
                 
-                // Блокировщик нажатий в режиме выделения
                 if (isSelectionMode) {
                     Box(modifier = Modifier.matchParentSize().clickable(enabled = true, onClick = {}))
                 }

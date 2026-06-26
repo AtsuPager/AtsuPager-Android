@@ -28,6 +28,9 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE id = :userId")
     suspend fun getUserById(userId: String): User?
 
+    @Query("UPDATE users SET isMuted = :muted WHERE id = :userId")
+    suspend fun setMuted(userId: String, muted: Boolean)
+
     @Query("DELETE FROM users WHERE id = :userId")
     suspend fun deleteUserById(userId: String)
 

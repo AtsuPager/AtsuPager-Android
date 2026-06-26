@@ -11,6 +11,7 @@ import com.nax.atsupager.data.db.BackgammonDao
 import com.nax.atsupager.data.db.CheckersDao
 import com.nax.atsupager.data.db.ChessDao
 import com.nax.atsupager.data.db.ContactDao
+import com.nax.atsupager.data.db.GroupDao
 import com.nax.atsupager.data.db.MessageDao
 import com.nax.atsupager.data.db.UserDao
 import com.nax.atsupager.data.manager.SessionManager
@@ -112,6 +113,8 @@ object DatabaseModule {
     fun provideBackgammonDao(appDatabase: AppDatabase): BackgammonDao = appDatabase.backgammonDao()
     @Provides
     fun provideCheckersDao(appDatabase: AppDatabase): CheckersDao = appDatabase.checkersDao()
+    @Provides
+    fun provideGroupDao(appDatabase: AppDatabase): GroupDao = appDatabase.groupDao()
     @Provides
     @Singleton
     fun provideGson(): Gson = Gson()

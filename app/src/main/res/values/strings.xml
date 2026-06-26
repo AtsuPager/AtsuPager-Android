@@ -405,4 +405,53 @@
     <string name="invalid_code">Invalid or expired code</string>
     <string name="code_activated">Access successfully activated!</string>
 
+    <string name="group">Group</string>
+    <string name="group_name_hint">Enter group name</string>
+    <string name="system_joined_group">You joined group %1$s</string><!-- Group Management -->
+    <string name="group_members">Group Members</string>
+    <string name="leave_group">Leave Group</string>
+    <string name="leave_group_confirm">Are you sure you want to leave this group? If you are the owner, leadership will be transferred to another member.</string>
+    <string name="owner_label">Owner</string>
+    <string name="you_label">You</string>
+    <string name="kick_member_confirm">Remove %1$s from the group?</string>
+    <string name="error_group_not_found">Group not found</string>
+    <string name="add_member">Add Member</string>
+    <!-- System Messages in Chat -->
+    <string name="system_group_created">Group created</string>
+    <string name="system_member_joined">%1$s joined the group</string>
+    <string name="system_member_left">%1$s left the group</string>
+    <string name="system_member_kicked">%1$s was removed from the group</string>
+    <string name="system_new_owner">%1$s is now the group owner</string>
+    <string name="system_you_kicked">You were removed from the group</string>
+
+    <string name="audio_message">Voice message</string>
+    <string name="image_message">Photo</string>
+    <string name="video_message">Video</string>
+    <string name="file">File</string>
+
+    <string name="system_group_renamed">Group renamed to: %1$s</string>
+    <string name="create_group">Create Group</string>
+    <string name="rename_group">Rename Group</string>
+
+    <string name="export_profile_title">Export Profile</string>
+    <string name="import_profile_title">Import Profile</string>
+    <string name="include_history">Include chat history</string>
+    <string name="include_history_desc">Including all text messages and system notifications</string>
+
+    <string name="contacts_import_success_contacts_only">Import successful: only contacts restored (different ID)</string>
+
+    <string name="error_password_short">Password must be at least 8 characters</string>
+
+    <string name="tab_groups">Groups</string>
+    <string name="done_all">All</string>
+
+    <string name="add_caption_hint">Add a caption…</string>
+
+    <string name="menu_sounds">Sounds</string>
+
+    <string name="delete_group">Delete Group</string>
+    <string name="delete_group_confirm">Delete group for everyone? All messages and media will be wiped for all members.</string>
+
+    <string name="start_new_game">Start new game</string>
+
 </resources>

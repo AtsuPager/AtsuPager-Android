@@ -1,15 +1,25 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.main
 
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import androidx.exifinterface.media.ExifInterface
 import com.nax.atsupager.R
 import com.nax.atsupager.data.db.ChatMessage
+import com.nax.atsupager.data.db.MessageType
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -59,6 +69,52 @@ object MainUiUtils {
         }
     }
 
+    fun determineMessageType(mime: String?): MessageType = when {
+        mime?.startsWith("image/") == true -> MessageType.IMAGE
+        mime?.startsWith("video/") == true -> MessageType.VIDEO
+        mime?.startsWith("audio/") == true -> MessageType.AUDIO
+        else -> MessageType.FILE
+    }
+
+    fun getFileMetadata(context: Context, uri: Uri): Triple<String, Long, String?>? = 
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            val sizeIdx = cursor.getColumnIndex(OpenableColumns.SIZE)
+            if (cursor.moveToFirst()) {
+                Triple(cursor.getString(nameIdx), cursor.getLong(sizeIdx), context.contentResolver.getType(uri))
+            } else null
+        }
+
+    fun getImageDimensions(context: Context, uri: Uri): Pair<Int, Int>? = try {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeStream(input, null, opts)
+            if (opts.outWidth > 0) opts.outWidth to opts.outHeight else null
+        }
+    } catch (_: Exception) { null }
+
+    fun getImageRotation(context: Context, uri: Uri): Int = try {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val exif = ExifInterface(input)
+            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                else -> 0
+            }
+        } ?: 0
+    } catch (_: Exception) { 0 }
+
+    fun getImageRotationFromBytes(data: ByteArray): Int = try {
+        val exif = ExifInterface(ByteArrayInputStream(data))
+        when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            else -> 0
+        }
+    } catch (_: Exception) { 0 }
+
     fun getCoilModel(message: ChatMessage): Any? {
         val path = message.localFilePath ?: return null
         return when {
@@ -77,14 +133,12 @@ object MainUiUtils {
             if (!file.exists()) return
 
             if (localPath.endsWith(".enc")) {
-                // Используем наш безопасный провайдер для дешифровки в RAM
                 Uri.parse("content://${context.packageName}.decrypted.provider$localPath")
             } else {
                 FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
             }
         }
 
-        // Пытаемся получить MIME-тип: из сообщения -> из провайдера -> по расширению
         val mime = message.mimeType 
             ?: context.contentResolver.getType(uri) 
             ?: getMimeTypeFromPath(localPath)

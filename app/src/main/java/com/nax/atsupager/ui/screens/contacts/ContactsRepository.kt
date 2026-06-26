@@ -24,6 +24,14 @@ class ContactsRepository @Inject constructor(
         }
     }
 
+    suspend fun getContact(userId: String): User? {
+        return if (contactDao.isContact(userId)) {
+            userDao.getUserById(userId)
+        } else {
+            null
+        }
+    }
+
     suspend fun addContact(user: User) {
         userDao.insertAll(listOf(user))
         contactDao.insertContact(Contact(userId = user.id))
@@ -42,8 +50,6 @@ class ContactsRepository @Inject constructor(
 
     suspend fun deleteContact(userId: String) {
         contactDao.deleteContact(userId)
-        // Удаляем пользователя полностью, чтобы при повторном звонке/добавлении
-        // имя не "всплывало" из кэша таблицы users.
         userDao.deleteUserById(userId)
     }
 }

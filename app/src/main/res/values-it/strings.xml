@@ -300,4 +300,46 @@
     <string name="invalid_code">Codice non valido o scaduto</string>
     <string name="code_activated">Accesso attivato con successo!</string>
 
+    <string name="group">Gruppo</string><string name="group_name_hint">Inserisci il nome del gruppo</string>
+    <string name="system_joined_group">Ti sei unito al gruppo %1$s</string>
+    <string name="group_members">Membri del gruppo</string>
+    <string name="leave_group">Lascia il gruppo</string>
+    <string name="leave_group_confirm">Sei sicuro di voler lasciare questo gruppo? Se sei il proprietario, la leadership verrà trasferita a un altro membro.</string>
+    <string name="owner_label">Proprietario</string>
+    <string name="you_label">Tu</string>
+    <string name="kick_member_confirm">Rimuovere %1$s dal gruppo?</string>
+    <string name="error_group_not_found">Gruppo non trovato</string>
+    <string name="add_member">Aggiungi membro</string>
+    <string name="system_group_created">Gruppo creato</string>
+    <string name="system_member_joined">%1$s si è unito al gruppo</string>
+    <string name="system_member_left">%1$s ha lasciato il gruppo</string>
+    <string name="system_member_kicked">%1$s è stato rimosso dal gruppo</string>
+    <string name="system_new_owner">%1$s è ora il proprietario del gruppo</string>
+    <string name="system_you_kicked">Sei stato rimosso dal gruppo</string>
+    <string name="audio_message">Messaggio vocale</string>
+    <string name="image_message">Foto</string>
+    <string name="video_message">Video</string>
+    <string name="file">File</string>
+    <string name="system_group_renamed">Gruppo rinominato in: %1$s</string>
+    <string name="create_group">Crea gruppo</string>
+    <string name="rename_group">Rinomina gruppo</string>
+
+    <string name="export_profile_title">Esporta profilo</string>
+    <string name="import_profile_title">Importa profilo</string>
+    <string name="include_history">Includi cronologia chat</string>
+    <string name="include_history_desc">Inclusi tutti i messaggi di testo e le notifiche di sistema</string>
+
+    <string name="contacts_import_success_contacts_only">Importazione riuscita: solo i contatti sono stati ripristinati (ID diverso)</string>
+
+    <string name="error_password_short">La password deve contenere almeno 8 caratteri</string>
+
+    <string name="tab_groups">Gruppi</string>
+
+    <string name="menu_sounds">Suoni</string>
+
+    <string name="delete_group">Elimina gruppo</string>
+    <string name="delete_group_confirm">Eliminare il gruppo per tutti? Tutti i messaggi e i file multimediali verranno cancellati per tutti i membri.</string>
+
+    <string name="start_new_game">Inizia nuova partita</string>
+
 </resources>

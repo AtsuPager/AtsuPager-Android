@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,27 +28,38 @@ import com.nax.atsupager.R
 import com.nax.atsupager.data.model.User
 import com.nax.atsupager.security.KeyboardSecurity
 
+data class PickerTarget(
+    val id: String,
+    val name: String,
+    val isGroup: Boolean
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactPickerSheet(
-    contacts: List<User>,
+    title: String? = null,
+    contacts: List<User> = emptyList(),
+    targets: List<PickerTarget>? = null,
     onContactsSelected: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     
-    val filteredContacts = remember(searchQuery, contacts) {
-        if (searchQuery.isBlank()) contacts
-        else contacts.filter { 
-            it.username.contains(searchQuery, ignoreCase = true) || 
+    val allTargets = remember(contacts, targets) {
+        targets ?: contacts.map { PickerTarget(it.id, it.username, false) }
+    }
+    
+    val filteredTargets = remember(searchQuery, allTargets) {
+        if (searchQuery.isBlank()) allTargets
+        else allTargets.filter { 
+            it.name.contains(searchQuery, ignoreCase = true) || 
             it.id.contains(searchQuery, ignoreCase = true) 
         }
     }
 
-    // Сортировка: выбранные контакты всегда сверху
-    val sortedContacts = remember(filteredContacts, selectedIds) {
-        filteredContacts.sortedByDescending { it.id in selectedIds }
+    val sortedTargets = remember(filteredTargets, selectedIds) {
+        filteredTargets.sortedByDescending { it.id in selectedIds }
     }
 
     ModalBottomSheet(
@@ -69,7 +81,7 @@ fun ContactPickerSheet(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(R.string.forward_to),
+                        text = title ?: stringResource(R.string.forward_to),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -101,7 +113,7 @@ fun ContactPickerSheet(
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Confirm")
                     }
                 }
             }
@@ -120,8 +132,8 @@ fun ContactPickerSheet(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                items(sortedContacts, key = { it.id }) { contact ->
-                    val isSelected = selectedIds.contains(contact.id)
+                items(sortedTargets, key = { it.id }) { target ->
+                    val isSelected = selectedIds.contains(target.id)
                     val backgroundColor by animateColorAsState(
                         targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
                                       else Color.Transparent,
@@ -134,14 +146,27 @@ fun ContactPickerSheet(
                             .clip(RoundedCornerShape(12.dp))
                             .background(backgroundColor)
                             .clickable {
-                                selectedIds = if (isSelected) selectedIds - contact.id 
-                                             else selectedIds + contact.id
+                                selectedIds = if (isSelected) selectedIds - target.id 
+                                             else selectedIds + target.id
                             }
                             .padding(vertical = 12.dp, horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(contentAlignment = Alignment.BottomEnd) {
-                            ContactAvatar(username = contact.username, modifier = Modifier.size(44.dp))
+                            if (target.isGroup) {
+                                Surface(
+                                    modifier = Modifier.size(44.dp),
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Groups, null, tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            } else {
+                                ContactAvatar(username = target.name, modifier = Modifier.size(44.dp))
+                            }
+                            
                             if (isSelected) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.primary,
@@ -149,35 +174,22 @@ fun ContactPickerSheet(
                                     modifier = Modifier.size(16.dp).offset(x = 2.dp, y = 2.dp),
                                     border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Check, 
-                                        null, 
-                                        tint = Color.White, 
-                                        modifier = Modifier.padding(2.dp)
-                                    )
+                                    Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.padding(2.dp))
                                 }
                             }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
-                                text = contact.username,
+                                text = target.name,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                             )
                             Text(
-                                text = contact.id.take(12) + "...",
+                                text = if (target.isGroup) stringResource(R.string.group) else target.id.take(12) + "...",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-                    }
-                }
-                
-                if (sortedContacts.isEmpty() && contacts.isNotEmpty()) {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.no_contacts), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

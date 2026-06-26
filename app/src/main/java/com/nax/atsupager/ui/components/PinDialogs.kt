@@ -1,7 +1,7 @@
 package com.nax.atsupager.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -21,9 +21,9 @@ import com.nax.atsupager.security.SecureDataHandler
 @Composable
 fun PinSetupDialog(
     onDismiss: () -> Unit,
-    onPinSet: (CharArray) -> Unit, // Передаем массив
+    onPinSet: (CharArray) -> Unit,
     isPinSet: Boolean = false,
-    verifyOldPin: ((CharArray) -> Boolean)? = null // Принимаем массив
+    verifyOldPin: ((CharArray) -> Boolean)? = null
 ) {
     var step by remember { mutableStateOf(if (isPinSet) 0 else 1) }
     var oldPin by remember { mutableStateOf("") }
@@ -38,11 +38,12 @@ fun PinSetupDialog(
         onDismissRequest = onDismiss,
         title = { 
             Text(
-                when(step) {
+                text = when(step) {
                     0 -> stringResource(R.string.old_pin)
                     1 -> stringResource(R.string.new_pin)
                     else -> stringResource(R.string.confirm_pin)
-                }
+                },
+                style = MaterialTheme.typography.headlineSmall
             )
         },
         text = {
@@ -53,7 +54,7 @@ fun PinSetupDialog(
                     else -> confirmPin
                 }
 
-                OutlinedTextField(
+                StyledTextField(
                     value = value,
                     onValueChange = { 
                         if (it.length <= 8 && it.all { char -> char.isDigit() }) {
@@ -65,7 +66,7 @@ fun PinSetupDialog(
                             error = null
                         }
                     },
-                    label = { Text(stringResource(if (step == 0) R.string.old_pin else if (step == 1) R.string.new_pin else R.string.confirm_pin)) },
+                    placeholderText = stringResource(if (step == 0) R.string.old_pin else if (step == 1) R.string.new_pin else R.string.confirm_pin),
                     visualTransformation = if (pinVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { pinVisible = !pinVisible }) {
@@ -75,14 +76,13 @@ fun PinSetupDialog(
                     keyboardOptions = KeyboardSecurity.securePasswordOptions.copy(
                         keyboardType = KeyboardType.Number
                     ),
-                    isError = error != null,
                     modifier = Modifier.fillMaxWidth()
                 )
                 
                 if (error != null) {
                     Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 } else if (step == 1) {
-                    Text(stringResource(R.string.pin_hint_min_length), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.pin_hint_min_length), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         },
@@ -95,7 +95,7 @@ fun PinSetupDialog(
                             if (verifyOldPin?.invoke(chars) == true) {
                                 step = 1
                                 error = null
-                                oldPin = "" // Сбрасываем строку немедленно
+                                oldPin = ""
                             } else {
                                 error = context.getString(R.string.error_wrong_pin)
                                 SecureDataHandler.wipe(chars)
@@ -126,7 +126,8 @@ fun PinSetupDialog(
                     1 -> newPin.length >= 4
                     2 -> confirmPin.length >= 4
                     else -> false
-                }
+                },
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(if (step < 2) stringResource(R.string.next) else stringResource(R.string.save))
             }

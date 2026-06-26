@@ -121,6 +121,7 @@ dependencies {
     implementation("net.zetetic:android-database-sqlcipher:4.5.4")
 
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.exifinterface)
 
     implementation(libs.bitcoinj.core)
     implementation(libs.zxing.core)

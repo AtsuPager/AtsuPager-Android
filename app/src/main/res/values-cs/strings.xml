@@ -297,4 +297,47 @@
     <string name="invalid_code">Neplatný nebo expirovaný kód</string>
     <string name="code_activated">Přístup byl úspěšně aktivován!</string>
 
+    <string name="group_name_hint">Zadejte název skupiny</string>
+    <string name="system_joined_group">Připojili jste se ke skupině %1$s</string>
+    <string name="group_members">Členové skupiny</string>
+    <string name="leave_group">Opustit skupinu</string>
+    <string name="leave_group_confirm">Opravdu chcete opustit tuto skupinu? Pokud jste vlastník, vedení bude převedeno na jiného člena.</string>
+    <string name="owner_label">Vlastník</string>
+    <string name="you_label">Vy</string>
+    <string name="kick_member_confirm">Odebrat uživatele %1$s ze skupiny?</string>
+    <string name="error_group_not_found">Skupina nebyla nalezena</string>
+    <string name="add_member">Přidat člena</string>
+    <string name="system_group_created">Skupina vytvořena</string>
+    <string name="system_member_joined">%1$s se připojil ke skupině</string>
+    <string name="system_member_left">%1$s opustil skupinu</string>
+    <string name="system_member_kicked">%1$s byl odebrán ze skupiny</string>
+    <string name="system_new_owner">%1$s je nyní vlastníkem skupiny</string>
+    <string name="system_you_kicked">Byli jste odebráni ze skupiny</string>
+    <string name="audio_message">Hlasová zpráva</string>
+    <string name="image_message">Fotka</string>
+    <string name="video_message">Video</string>
+    <string name="file">Soubor</string>
+    <string name="system_group_renamed">Skupina přejmenována na: %1$s</string>
+    <string name="create_group">Vytvořit skupinu</string>
+    <string name="rename_group">Přejmenovat skupinu</string>
+
+    <string name="export_profile_title">Export profilu</string>
+    <string name="import_profile_title">Importovat profil</string>
+    <string name="include_history">Zahrnout historii chatu</string>
+    <string name="include_history_desc">Včetně všech textových zpráv a systémových oznámení</string>
+
+    <string name="contacts_import_success_contacts_only">Import úspěšný: obnoveny pouze kontakty (jiné ID)</string>
+
+    <string name="error_password_short">Heslo musí mít alespoň 8 znaků</string>
+
+    <string name="tab_groups">Skupiny</string>
+    <string name="group">Skupina</string>
+
+    <string name="menu_sounds">Zvuky</string>
+
+    <string name="delete_group">Smazat skupinu</string>
+    <string name="delete_group_confirm">Smazat skupinu pro všechny? Všechny zprávy a média budou smazány pro všechny členy.</string>
+
+    <string name="start_new_game">Spustit novou hru</string>
+
 </resources>

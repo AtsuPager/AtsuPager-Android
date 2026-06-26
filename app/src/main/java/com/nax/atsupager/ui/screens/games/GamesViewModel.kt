@@ -396,8 +396,19 @@ class GamesViewModel @Inject constructor(
             }
             val myName = sharedPreferences.getString(SettingsViewModel.PREF_LOGIN_NAME, "").takeIf { !it.isNullOrBlank() } ?: "User"
             val inviteText = "$myName " + context.getString(R.string.invite_msg_chat, "", gameTitle).trim()
-            signalRepository.sendMessage(targetUserId, inviteText)
-            messageDao.insertMessage(ChatMessage(fromUserId = myId, toUserId = targetUserId, text = inviteText, timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.TEXT))
+            
+            val inviteMsg = ChatMessage(
+                fromUserId = myId, 
+                toUserId = targetUserId, 
+                text = inviteText, 
+                timestamp = System.currentTimeMillis(), 
+                isRead = true, 
+                type = MessageType.GAME_INVITE
+            )
+            
+            // SECURITY: Отправляем как файл/структуру, чтобы тип GAME_INVITE сохранился при десериализации на той стороне
+            signalRepository.sendFileMessage(targetUserId, inviteMsg)
+            messageDao.insertMessage(inviteMsg)
         }
     }
 

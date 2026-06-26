@@ -32,21 +32,34 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nax.atsupager.R
 import com.nax.atsupager.data.network.ConnectionStatus
-import com.nax.atsupager.security.ClipboardClearDelay
 import com.nax.atsupager.security.ClipboardUiHelper
 import com.nax.atsupager.security.KeyboardSecurity
-import com.nax.atsupager.ui.theme.AppFont
-import com.nax.atsupager.ui.components.StyledTextField
-import com.nax.atsupager.ui.components.PinSetupDialog
-import com.nax.atsupager.ui.components.AtsuSnackbarHost
+import com.nax.atsupager.ui.components.*
 import com.nax.atsupager.ui.utils.QRUtils
 import com.nax.atsupager.webrtc.NtfyStatus
+
+sealed class SettingsDialog {
+    object Language : SettingsDialog()
+    object Theme : SettingsDialog()
+    object Font : SettingsDialog()
+    object Pin : SettingsDialog()
+    object MnemonicImport : SettingsDialog()
+    object CreateProfile : SettingsDialog()
+    object EditName : SettingsDialog()
+    object MnemonicDisplay : SettingsDialog()
+    object Ttl : SettingsDialog()
+    object Clipboard : SettingsDialog()
+    object Access : SettingsDialog()
+    data class DeleteProfile(val id: String, val name: String) : SettingsDialog()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,24 +93,13 @@ fun SettingsContent(viewModel: SettingsViewModel) {
     var proxyHost by remember(uiState.proxyHost) { mutableStateOf(uiState.proxyHost) }
     var proxyPort by remember(uiState.proxyPort) { mutableStateOf(uiState.proxyPort.toString()) }
 
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var showThemeDialog by remember { mutableStateOf(false) }
-    var showFontDialog by remember { mutableStateOf(false) }
+    var activeDialog by remember { mutableStateOf<SettingsDialog?>(null) }
+    
     var isNetworkExpanded by remember { mutableStateOf(false) }
     var isKeysExpanded by remember { mutableStateOf(false) }
     var isIdentityExpanded by remember { mutableStateOf(false) }
     var isProfilesExpanded by remember { mutableStateOf(false) }
-    var showPinDialog by remember { mutableStateOf(false) }
-    var showMnemonicImportDialog by remember { mutableStateOf(false) }
-    var showCreateProfileDialog by remember { mutableStateOf(false) }
-    var showEditNameDialog by remember { mutableStateOf(false) }
-    var showMnemonicDisplayDialog by remember { mutableStateOf(false) }
-    var showTtlDialog by remember { mutableStateOf(false) }
-    var showClipboardDialog by remember { mutableStateOf(false) }
-    var showAccessDialog by remember { mutableStateOf(false) }
     
-    var profileToDelete by remember { mutableStateOf<String?>(null) }
-    var deletePinInput by remember { mutableStateOf("") }
     var deleteError by remember { mutableStateOf<String?>(null) }
 
     val scrollState = rememberScrollState()
@@ -117,21 +119,21 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                 headlineContent = { Text(stringResource(R.string.language)) }, 
                 supportingContent = { Text(getLanguageName(uiState.currentLanguage)) },
                 leadingContent = { SettingsLeadingIcon(Icons.Default.Language) }, 
-                modifier = Modifier.clickable { showLanguageDialog = true }
+                modifier = Modifier.clickable { activeDialog = SettingsDialog.Language }
             )
 
             ListItem(
                 headlineContent = { Text(stringResource(R.string.theme)) },
                 supportingContent = { Text(getThemeLabel(uiState.themeMode)) },
                 leadingContent = { SettingsLeadingIcon(Icons.Default.Palette) },
-                modifier = Modifier.clickable { showThemeDialog = true }
+                modifier = Modifier.clickable { activeDialog = SettingsDialog.Theme }
             )
 
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_font_title)) },
                 supportingContent = { Text(getFontLabel(uiState.appFont)) },
                 leadingContent = { SettingsLeadingIcon(Icons.Default.FontDownload) },
-                modifier = Modifier.clickable { showFontDialog = true }
+                modifier = Modifier.clickable { activeDialog = SettingsDialog.Font }
             )
 
             HorizontalDivider()
@@ -159,7 +161,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                         supportingContent = { Text(uiState.loginName.ifEmpty { stringResource(R.string.empty_value_placeholder) }) },
                         leadingContent = { SettingsLeadingIcon(Icons.Default.Edit, modifier = Modifier.size(20.dp)) },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                        modifier = Modifier.clickable { showEditNameDialog = true },
+                        modifier = Modifier.clickable { activeDialog = SettingsDialog.EditName },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
 
@@ -198,9 +200,8 @@ fun SettingsContent(viewModel: SettingsViewModel) {
 
                             if (!isActive) {
                                 IconButton(onClick = {
-                                    deletePinInput = ""
                                     deleteError = null
-                                    profileToDelete = id
+                                    activeDialog = SettingsDialog.DeleteProfile(id, name)
                                 }, modifier = Modifier.align(Alignment.CenterVertically)) {
                                     Icon(Icons.Default.DeleteForever, null, tint = MaterialTheme.colorScheme.error)
                                 }
@@ -215,7 +216,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { showCreateProfileDialog = true },
+                            onClick = { activeDialog = SettingsDialog.CreateProfile },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -224,7 +225,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                             Text(stringResource(R.string.create_id))
                         }
                         FilledTonalButton(
-                            onClick = { showMnemonicImportDialog = true },
+                            onClick = { activeDialog = SettingsDialog.MnemonicImport },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -362,7 +363,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                         OutlinedButton(
                             onClick = { 
                                 viewModel.prepareMnemonic()
-                                showMnemonicDisplayDialog = true 
+                                activeDialog = SettingsDialog.MnemonicDisplay
                             }, 
                             modifier = Modifier.fillMaxWidth().padding(end = 16.dp)
                         ) {
@@ -398,7 +399,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                             Text(
                                 text = stringResource(R.string.access_settings),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Normal
                             )
                             val detailText = if (uiState.accessStatus == AccessStatus.ACTIVE) {
                                 stringResource(R.string.access_expires_label, uiState.accessExpiry)
@@ -414,7 +415,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                     }
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = { showAccessDialog = true },
+                        onClick = { activeDialog = SettingsDialog.Access },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = if (uiState.accessStatus != AccessStatus.ACTIVE) 
@@ -457,17 +458,45 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                         leadingContent = { SettingsLeadingIcon(Icons.Default.NotificationsActive) },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
+
+                    var isServerUrlVisible by remember { mutableStateOf(false) }
+                    val isServerSaved = serverUrl == uiState.ntfyServerUrl
+
                     StyledTextField(
                         value = serverUrl,
                         onValueChange = { serverUrl = it },
                         placeholderText = stringResource(R.string.ntfy_placeholder),
                         modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
-                        keyboardOptions = KeyboardSecurity.secureChatOptions
+                        keyboardOptions = KeyboardSecurity.secureChatOptions,
+                        visualTransformation = if (isServerUrlVisible && !isServerSaved) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            if (!isServerSaved) {
+                                IconButton(onClick = { isServerUrlVisible = !isServerUrlVisible }) {
+                                    Icon(
+                                        imageVector = if (isServerUrlVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(end = 12.dp).size(20.dp)
+                                )
+                            }
+                        }
                     )
+                    Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = { viewModel.setNtfyServerUrl(serverUrl) }, 
-                        modifier = Modifier.align(Alignment.End).padding(end = 16.dp), 
-                        enabled = serverUrl != uiState.ntfyServerUrl
+                        onClick = { 
+                            viewModel.setNtfyServerUrl(serverUrl)
+                            isServerUrlVisible = false
+                        }, 
+                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp), 
+                        enabled = serverUrl != uiState.ntfyServerUrl,
+                        shape = RoundedCornerShape(12.dp)
                     ) { Text(stringResource(R.string.save_server)) }
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp)
@@ -521,14 +550,14 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                 headlineContent = { Text(stringResource(R.string.message_ttl_title)) },
                 supportingContent = { Text(getMessageTtlLabel(uiState.messageTTL)) },
                 leadingContent = { SettingsLeadingIcon(Icons.Default.History) },
-                modifier = Modifier.clickable { showTtlDialog = true }
+                modifier = Modifier.clickable { activeDialog = SettingsDialog.Ttl }
             )
 
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_clipboard_title)) },
                 supportingContent = { Text(getClipboardDelayLabel(uiState.clipboardClearDelay)) },
                 leadingContent = { SettingsLeadingIcon(Icons.Default.ContentPasteGo) },
-                modifier = Modifier.clickable { showClipboardDialog = true }
+                modifier = Modifier.clickable { activeDialog = SettingsDialog.Clipboard }
             )
 
             ListItem(
@@ -557,7 +586,7 @@ fun SettingsContent(viewModel: SettingsViewModel) {
                         headlineContent = { Text(stringResource(R.string.set_pin)) },
                         supportingContent = { Text(if (uiState.isPinSet) stringResource(R.string.pin_set) else stringResource(R.string.pin_not_set)) },
                         leadingContent = { SettingsLeadingIcon(Icons.Default.Password) },
-                        modifier = Modifier.clickable { showPinDialog = true },
+                        modifier = Modifier.clickable { activeDialog = SettingsDialog.Pin },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                     ListItem(
@@ -587,550 +616,146 @@ fun SettingsContent(viewModel: SettingsViewModel) {
         )
     }
 
-    // Access Activation Dialog
-    if (showAccessDialog) {
-        var codeInput by remember { mutableStateOf("") }
-        var isVerifying by remember { mutableStateOf(false) }
-        var errorText by remember { mutableStateOf<String?>(null) }
-
-        AlertDialog(
-            onDismissRequest = { if (!isVerifying) showAccessDialog = false },
-            title = { Text(stringResource(R.string.access_settings)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.buy_code_info), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(16.dp))
-                    StyledTextField(
-                        value = codeInput,
-                        onValueChange = { 
-                            // Allow letters, digits and hyphens
-                            val filtered = it.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
-                            if (filtered.length <= 25) codeInput = filtered 
-                        },
-                        placeholderText = stringResource(R.string.enter_code_hint),
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardSecurity.secureChatOptions
-                    )
-                    if (errorText != null) {
-                        Text(
-                            text = errorText!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
+    // Dialog Handling
+    when (val dialog = activeDialog) {
+        is SettingsDialog.Language -> {
+            LanguageSelectionDialog(
+                currentLanguage = uiState.currentLanguage,
+                onDismiss = { activeDialog = null },
+                onLanguageSelected = { viewModel.changeLanguage(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.Theme -> {
+            ThemeSelectionDialog(
+                currentMode = uiState.themeMode,
+                onDismiss = { activeDialog = null },
+                onModeSelected = { viewModel.setThemeMode(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.Font -> {
+            FontSelectionDialog(
+                currentFont = uiState.appFont,
+                onDismiss = { activeDialog = null },
+                onFontSelected = { viewModel.setAppFont(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.Ttl -> {
+            TtlSelectionDialog(
+                currentTtl = uiState.messageTTL,
+                onDismiss = { activeDialog = null },
+                onTtlSelected = { viewModel.setMessageTTL(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.Clipboard -> {
+            ClipboardSelectionDialog(
+                currentDelay = uiState.clipboardClearDelay,
+                onDismiss = { activeDialog = null },
+                onDelaySelected = { viewModel.setClipboardClearDelay(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.EditName -> {
+            EditNameDialog(
+                initialName = uiState.loginName,
+                onDismiss = { activeDialog = null },
+                onConfirm = { viewModel.setLoginName(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.CreateProfile -> {
+            CreateProfileDialog(
+                onDismiss = { activeDialog = null },
+                onConfirm = { viewModel.createNewProfile(it); activeDialog = null }
+            )
+        }
+        is SettingsDialog.MnemonicImport -> {
+            MnemonicImportDialog(
+                onDismiss = { activeDialog = null },
+                onConfirm = { text, name -> 
+                    viewModel.importNewProfile(text.trim().split("\\s+".toRegex()), name)
+                    activeDialog = null
                 }
-            },
-            confirmButton = {
-                // Count only alphanumeric characters
-                val cleanLength = codeInput.filter { it.isLetterOrDigit() }.length
-                Button(
-                    onClick = {
-                        isVerifying = true
-                        viewModel.applyAccessCode(codeInput) { success, error ->
-                            isVerifying = false
-                            if (success) {
-                                showAccessDialog = false
-                            } else {
-                                errorText = error
-                            }
-                        }
-                    },
-                    // Enabled only if exactly 16 meaningful symbols are present
-                    enabled = cleanLength == 16 && !isVerifying
-                ) {
-                    if (isVerifying) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text(stringResource(R.string.apply_code))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAccessDialog = false }, enabled = !isVerifying) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (showEditNameDialog) {
-        var tempName by remember { mutableStateOf(uiState.loginName) }
-        AlertDialog(
-            onDismissRequest = { showEditNameDialog = false },
-            title = { Text(stringResource(R.string.login_name)) },
-            text = {
-                OutlinedTextField(
-                    value = tempName,
-                    onValueChange = { tempName = it },
-                    label = { Text(stringResource(R.string.username_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+            )
+        }
+        is SettingsDialog.MnemonicDisplay -> {
+            uiState.mnemonic?.let {
+                MnemonicDisplayDialog(
+                    mnemonic = it,
+                    onDismiss = { viewModel.clearMnemonicFromState(); activeDialog = null }
                 )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.setLoginName(tempName)
-                        showEditNameDialog = false
-                    }
-                ) { Text(stringResource(R.string.save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditNameDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
-        )
-    }
-
-    if (profileToDelete != null) {
-        val hasPin = uiState.profilesWithPin.contains(profileToDelete)
-        AlertDialog(
-            onDismissRequest = { profileToDelete = null },
-            title = { Text(stringResource(R.string.delete_contact_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.delete_contact_msg, uiState.profiles[profileToDelete] ?: ""))
-                    if (hasPin) {
-                        Spacer(Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = deletePinInput,
-                            onValueChange = { deletePinInput = it },
-                            label = { Text(stringResource(R.string.old_pin)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardSecurity.securePasswordOptions.copy(keyboardType = KeyboardType.NumberPassword),
-                            isError = deleteError != null,
-                            supportingText = { deleteError?.let { Text(it) } }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.deleteProfile(
-                            userId = profileToDelete!!,
-                            pinChars = deletePinInput.toCharArray(),
-                            onSuccess = { 
-                                deletePinInput = ""
-                                profileToDelete = null 
-                            },
-                            onError = { deleteError = it }
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    enabled = !hasPin || deletePinInput.length >= 4
-                ) { Text(stringResource(R.string.delete)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { 
-                    deletePinInput = ""
-                    profileToDelete = null 
-                }) { Text(stringResource(R.string.cancel)) } 
-            }
-        )
-    }
-
-    if (showCreateProfileDialog) {
-        var newUsername by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showCreateProfileDialog = false },
-            title = { Text(stringResource(R.string.create_id)) },
-            text = {
-                OutlinedTextField(
-                    value = newUsername,
-                    onValueChange = { newUsername = it },
-                    label = { Text(stringResource(R.string.username_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newUsername.isNotBlank()) {
-                            viewModel.createNewProfile(newUsername)
-                            showCreateProfileDialog = false
-                        }
-                    },
-                    enabled = newUsername.isNotBlank()
-                ) { Text(stringResource(R.string.generate_id_action)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateProfileDialog = false }) { Text(stringResource(R.string.cancel)) }
-            }
-        )
-    }
-
-    if (showTtlDialog) {
-        TtlSelectionDialog(
-            currentTtl = uiState.messageTTL,
-            onDismiss = { showTtlDialog = false },
-            onTtlSelected = { viewModel.setMessageTTL(it); showTtlDialog = false }
-        )
-    }
-
-    if (showClipboardDialog) {
-        ClipboardSelectionDialog(
-            currentDelay = uiState.clipboardClearDelay,
-            onDismiss = { showClipboardDialog = false },
-            onDelaySelected = { viewModel.setClipboardClearDelay(it); showClipboardDialog = false }
-        )
-    }
-
-    if (showThemeDialog) {
-        ThemeSelectionDialog(
-            currentMode = uiState.themeMode,
-            onDismiss = { showThemeDialog = false },
-            onModeSelected = { viewModel.setThemeMode(it); showThemeDialog = false }
-        )
-    }
-
-    if (showFontDialog) {
-        FontSelectionDialog(
-            currentFont = uiState.appFont,
-            onDismiss = { showFontDialog = false },
-            onFontSelected = { viewModel.setAppFont(it); showFontDialog = false }
-        )
-    }
-
-    if (showMnemonicDisplayDialog && uiState.mnemonic != null) {
-        AlertDialog(
-            onDismissRequest = { 
-                viewModel.clearMnemonicFromState()
-                showMnemonicDisplayDialog = false 
-            },
-            title = { Text(stringResource(R.string.your_mnemonic)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.mnemonic_warning), color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(16.dp))
-                    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(16.dp)) {
-                        Text(text = uiState.mnemonic!!.joinToString(" "), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    }
-                }
-            },
-            confirmButton = { 
-                TextButton(onClick = { 
-                    viewModel.clearMnemonicFromState()
-                    showMnemonicDisplayDialog = false 
-                }) { Text(stringResource(R.string.close)) } 
-            }
-        )
-    }
-
-    if (showMnemonicImportDialog) {
-        var importText by remember { mutableStateOf("") }
-        var importName by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { 
-                importText = ""
-                showMnemonicImportDialog = false 
-            },
-            title = { Text(stringResource(R.string.import_id)) },
-            text = { 
-                Column {
-                    OutlinedTextField(
-                        value = importName,
-                        onValueChange = { importName = it },
-                        label = { Text(stringResource(R.string.username_label)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = importText,
-                        onValueChange = { importText = it },
-                        placeholder = { Text(stringResource(R.string.mnemonic_placeholder)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardSecurity.securePasswordOptions
+        }
+        is SettingsDialog.Pin -> {
+            PinSetupDialog(
+                onDismiss = { activeDialog = null },
+                onPinSet = { viewModel.setPin(it); activeDialog = null },
+                isPinSet = uiState.isPinSet,
+                verifyOldPin = { viewModel.verifyOldPin(it) }
+            )
+        }
+        is SettingsDialog.DeleteProfile -> {
+            DeleteProfileConfirmDialog(
+                profileName = dialog.name,
+                hasPin = uiState.profilesWithPin.contains(dialog.id),
+                onDismiss = { activeDialog = null },
+                onConfirm = { pin ->
+                    viewModel.deleteProfile(
+                        userId = dialog.id,
+                        pinChars = pin,
+                        onSuccess = { activeDialog = null },
+                        onError = { deleteError = it }
                     )
                 }
-            },
-            confirmButton = { 
-                Button(
-                    onClick = {
-                        viewModel.importNewProfile(importText.trim().split("\\s+".toRegex()), importName);
-                        importText = ""
-                        showMnemonicImportDialog = false
-                    },
-                    enabled = importName.isNotBlank() && importText.isNotBlank()
-                ) { Text(stringResource(R.string.import_action)) }
-            },
-            dismissButton = { 
-                TextButton(onClick = { 
-                    importText = ""
-                    showMnemonicImportDialog = false 
-                }) { Text(stringResource(R.string.cancel)) } 
-            }
-        )
-    }
-
-    if (showPinDialog) {
-        PinSetupDialog(
-            onDismiss = { showPinDialog = false },
-            onPinSet = { 
-                viewModel.setPin(it)
-                showPinDialog = false 
-            },
-            isPinSet = uiState.isPinSet,
-            verifyOldPin = { viewModel.verifyOldPin(it) }
-        )
-    }
-
-    if (showLanguageDialog) {
-        LanguageSelectionDialog(
-            currentLanguage = uiState.currentLanguage,
-            onDismiss = { showLanguageDialog = false },
-            onLanguageSelected = { viewModel.changeLanguage(it); showLanguageDialog = false }
-        )
+            )
+        }
+        is SettingsDialog.Access -> {
+            AccessCodeDialog(
+                onDismiss = { activeDialog = null },
+                onVerify = { code, onResult -> viewModel.applyAccessCode(code, onResult) }
+            )
+        }
+        null -> {}
     }
 }
 
 @Composable
 fun SettingsLeadingIcon(icon: ImageVector, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .width(24.dp)
-            .height(32.dp),
+        modifier = Modifier.width(24.dp).height(32.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = modifier.padding(top = 4.dp)
-        )
+        Icon(imageVector = icon, contentDescription = null, modifier = modifier.padding(top = 4.dp))
     }
 }
 
 @Composable
-fun FontSelectionDialog(currentFont: AppFont, onDismiss: () -> Unit, onFontSelected: (AppFont) -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_font_title)) },
-        text = {
-            Column {
-                AppFont.entries.forEach { font ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onFontSelected(font) }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = currentFont == font, onClick = { onFontSelected(font) })
-                        Spacer(Modifier.width(8.dp))
-                        Text(getFontLabel(font))
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
-    )
+fun getLanguageName(code: String): String = when {
+    code == "system" -> stringResource(R.string.system_default)
+    code.startsWith("en") -> "English"
+    code.startsWith("ru") -> "Русский"
+    code.startsWith("de") -> "Deutsch"
+    code.startsWith("fr") -> "Français"
+    code.startsWith("es") -> "Español"
+    code.startsWith("it") -> "Italiano"
+    code.startsWith("cs") -> "Čeština"
+    else -> code
 }
 
 @Composable
-fun getFontLabel(font: AppFont): String {
-    return when(font) {
-        AppFont.SYSTEM -> stringResource(R.string.settings_font_system)
-        AppFont.INTER -> stringResource(R.string.settings_font_inter)
-        AppFont.MANROPE -> stringResource(R.string.settings_font_manrope)
-        AppFont.JETBRAINS_MONO -> stringResource(R.string.settings_font_jetbrains)
-    }
+fun localizeNtfyStatus(status: NtfyStatus): String = when(status) {
+    NtfyStatus.CONNECTED -> stringResource(R.string.status_connected)
+    NtfyStatus.CONNECTING -> stringResource(R.string.status_connecting)
+    NtfyStatus.ERROR -> stringResource(R.string.status_error)
+    else -> stringResource(R.string.status_idle)
 }
 
 @Composable
-fun ThemeSelectionDialog(currentMode: ThemeMode, onDismiss: () -> Unit, onModeSelected: (ThemeMode) -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.theme)) },
-        text = {
-            Column {
-                ThemeMode.entries.forEach { mode ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onModeSelected(mode) }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = currentMode == mode, onClick = { onModeSelected(mode) })
-                        Spacer(Modifier.width(8.dp))
-                        Text(getThemeLabel(mode))
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
-    )
-}
-
-@Composable
-fun getThemeLabel(mode: ThemeMode): String {
-    return when(mode) {
-        ThemeMode.LIGHT -> stringResource(R.string.theme_light)
-        ThemeMode.DARK -> stringResource(R.string.theme_dark)
-        ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
-    }
-}
-
-@Composable
-fun TtlSelectionDialog(currentTtl: MessageTTL, onDismiss: () -> Unit, onTtlSelected: (MessageTTL) -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.message_ttl_dialog_title)) },
-        text = {
-            Column {
-                Text(
-                    text = stringResource(R.string.message_ttl_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 8.dp).padding(bottom = 16.dp)
-                )
-                MessageTTL.entries.forEach { ttl ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onTtlSelected(ttl) }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = currentTtl == ttl, onClick = { onTtlSelected(ttl) })
-                        Spacer(Modifier.width(8.dp))
-                        Text(getMessageTtlLabel(ttl))
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel)) } }
-    )
-}
-
-@Composable
-fun getMessageTtlLabel(ttl: MessageTTL): String {
-    return when(ttl) {
-        MessageTTL.OFF -> stringResource(R.string.ttl_disabled)
-        MessageTTL.ONE_HOUR -> stringResource(R.string.ttl_1h)
-        MessageTTL.ONE_DAY -> stringResource(R.string.ttl_24h)
-        MessageTTL.ONE_WEEK -> stringResource(R.string.ttl_7d)
-        MessageTTL.ONE_MONTH -> stringResource(R.string.ttl_30d)
-    }
-}
-
-@Composable
-fun ClipboardSelectionDialog(currentDelay: ClipboardClearDelay, onDismiss: () -> Unit, onDelaySelected: (ClipboardClearDelay) -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_clipboard_title)) },
-        text = {
-            Column {
-                Text(
-                    text = stringResource(R.string.settings_clipboard_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 8.dp).padding(bottom = 16.dp)
-                )
-                ClipboardClearDelay.entries.forEach { delay ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onDelaySelected(delay) }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = currentDelay == delay, onClick = { onDelaySelected(delay) })
-                        Spacer(Modifier.width(8.dp))
-                        Text(getClipboardDelayLabel(delay))
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel)) } }
-    )
-}
-
-@Composable
-fun getClipboardDelayLabel(delay: ClipboardClearDelay): String {
-    return when(delay) {
-        ClipboardClearDelay.THIRTY_SECONDS -> stringResource(R.string.settings_clipboard_30s)
-        ClipboardClearDelay.ONE_MINUTE -> stringResource(R.string.settings_clipboard_1m)
-        ClipboardClearDelay.FIVE_MINUTES -> stringResource(R.string.settings_clipboard_5m)
-        ClipboardClearDelay.NEVER -> stringResource(R.string.settings_clipboard_never)
-    }
-}
-
-@Composable
-fun getLanguageName(code: String): String {
-    return when {
-        code == "system" -> stringResource(R.string.system_default)
-        code.startsWith("en") -> "English"
-        code.startsWith("ru") -> "Русский"
-        code.startsWith("de") -> "Deutsch"
-        code.startsWith("fr") -> "Français"
-        code.startsWith("es") -> "Español"
-        code.startsWith("it") -> "Italiano"
-        code.startsWith("cs") -> "Čeština"
-        else -> code
-    }
-}
-
-@Composable
-fun localizeNtfyStatus(status: NtfyStatus): String {
-    return when(status) {
-        NtfyStatus.CONNECTED -> stringResource(R.string.status_connected)
-        NtfyStatus.CONNECTING -> stringResource(R.string.status_connecting)
-        NtfyStatus.ERROR -> stringResource(R.string.status_error)
-        else -> stringResource(R.string.status_idle)
-    }
-}
-
-@Composable
-fun localizeVpsStatus(status: ConnectionStatus): String {
-    return when(status) {
-        ConnectionStatus.CONNECTED -> stringResource(R.string.status_connected)
-        ConnectionStatus.AUTHENTICATING, ConnectionStatus.CONNECTING -> stringResource(R.string.status_connecting)
-        ConnectionStatus.ERROR -> stringResource(R.string.status_error)
-        else -> stringResource(R.string.status_idle)
-    }
+fun localizeVpsStatus(status: ConnectionStatus): String = when(status) {
+    ConnectionStatus.CONNECTED -> stringResource(R.string.status_connected)
+    ConnectionStatus.AUTHENTICATING, ConnectionStatus.CONNECTING -> stringResource(R.string.status_connecting)
+    ConnectionStatus.ERROR -> stringResource(R.string.status_error)
+    else -> stringResource(R.string.status_idle)
 }
 
 @Composable
 fun StatusDot(color: Color) {
     Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
-}
-
-@Composable
-fun LanguageSelectionDialog(currentLanguage: String, onDismiss: () -> Unit, onLanguageSelected: (String) -> Unit) {
-    val languages = listOf(
-        "system" to stringResource(R.string.system_default),
-        "en" to "English",
-        "ru" to "Русский",
-        "de" to "Deutsch",
-        "fr" to "Français",
-        "es" to "Español",
-        "it" to "Italiano",
-        "cs" to "Čeština"
-    )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.choose_language)) },
-        text = {
-            Column {
-                languages.forEach { (code, name) ->
-                    val isSelected = if (code == "system") currentLanguage == "system" else currentLanguage.startsWith(code)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onLanguageSelected(code) }
-                            .padding(vertical = 4.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { onLanguageSelected(code) },
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
-    )
 }

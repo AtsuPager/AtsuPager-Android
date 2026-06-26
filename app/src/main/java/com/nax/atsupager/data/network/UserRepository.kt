@@ -3,24 +3,19 @@ package com.nax.atsupager.data.network
 import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.nax.atsupager.data.db.ContactDao
-import com.nax.atsupager.data.db.UserDao
+import com.nax.atsupager.data.db.*
 import com.nax.atsupager.data.model.User
-import com.nax.atsupager.data.db.Contact
+import com.nax.atsupager.data.model.ProfileBackup
 import com.nax.atsupager.security.Bip39Manager
 import com.nax.atsupager.security.EncryptionManager
 import com.nax.atsupager.security.KeyStorageManager
 import com.nax.atsupager.security.SecureDataHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayInputStream
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,6 +28,8 @@ class UserRepository @Inject constructor(
     private val sharedPreferences: SharedPreferences,
     private val userDao: UserDao,
     private val contactDao: ContactDao,
+    private val groupDao: GroupDao,
+    private val messageDao: MessageDao,
     private val encryptionManager: EncryptionManager,
     private val keyStorageManager: KeyStorageManager,
     private val bip39Manager: Bip39Manager
@@ -40,77 +37,77 @@ class UserRepository @Inject constructor(
     private val gson = Gson()
 
     fun getCurrentUserId(): String? = sharedPreferences.getString(AuthRepository.KEY_USER_ID, null)
-
     fun getCurrentUserIdSync(): String? = sharedPreferences.getString(AuthRepository.KEY_USER_ID, null)
 
-    suspend fun addContactByIdentity(identity: String, customName: String? = null): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val parts = identity.split("@")
-                val address = if (parts.size == 2) parts[1] else identity
-                val username = customName ?: (if (parts.size == 2) parts[0] else "User_${identity.takeLast(4)}")
-                
-                val newUser = User(id = address, username = username, publicKey = null)
-                userDao.insertAll(listOf(newUser))
-                contactDao.insertContact(Contact(address))
-                true
-            } catch (e: Exception) { false }
-        }
+    suspend fun addContactByIdentity(identity: String, customName: String? = null): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val parts = identity.split("@")
+            val address = if (parts.size == 2) parts[1] else identity
+            val username = customName ?: (if (parts.size == 2) parts[0] else "User_${identity.takeLast(4)}")
+            userDao.insertAll(listOf(User(id = address, username = username, publicKey = null)))
+            contactDao.insertContact(Contact(address))
+            true
+        } catch (e: Exception) { false }
     }
 
     suspend fun addContact(userId: String, name: String? = null) {
         withContext(Dispatchers.IO) {
-            if (name != null) {
-                val user = userDao.getUserById(userId)
-                userDao.insertAll(listOf(User(id = userId, username = name, publicKey = user?.publicKey)))
-            }
+            val user = userDao.getUserById(userId)
+            val username = name ?: user?.username ?: "User_${userId.takeLast(4)}"
+            userDao.insertAll(listOf(User(id = userId, username = username, publicKey = user?.publicKey)))
             contactDao.insertContact(Contact(userId))
         }
     }
 
-    suspend fun isContact(userId: String): Boolean = withContext(Dispatchers.IO) {
-        contactDao.isContact(userId)
+    suspend fun isContact(userId: String): Boolean = withContext(Dispatchers.IO) { contactDao.isContact(userId) }
+
+    suspend fun updateUserInfo(
+        address: String,
+        username: String? = null,
+        publicKey: String? = null,
+        fromNetwork: Boolean = false
+    ) = withContext(Dispatchers.IO) {
+        val user = userDao.getUserById(address)
+        val isContact = contactDao.isContact(address)
+        
+        val currentName = user?.username ?: "User_${address.takeLast(4)}"
+        var finalName = currentName
+        
+        if (!username.isNullOrBlank()) {
+            val isCurrentPlaceholder = currentName.startsWith("User_") || currentName == address
+            val isNewNamePlaceholder = username.startsWith("User_") || username == address
+            
+            if (!isNewNamePlaceholder) {
+                if (isCurrentPlaceholder || !isContact) {
+                    if (currentName != username) {
+                        finalName = username
+                    }
+                }
+            }
+        }
+        
+        val finalPublicKey = publicKey ?: user?.publicKey
+        
+        if (user == null || user.username != finalName || user.publicKey != finalPublicKey) {
+            userDao.insertAll(listOf(User(
+                id = address,
+                username = finalName,
+                publicKey = finalPublicKey,
+                isMuted = user?.isMuted ?: false
+            )))
+        }
     }
 
     suspend fun updatePublicKey(address: String, publicKey: String) {
-        withContext(Dispatchers.IO) {
-            val user = userDao.getUserById(address)
-            if (user != null) {
-                userDao.insertAll(listOf(user.copy(publicKey = publicKey)))
-            } else {
-                userDao.insertAll(listOf(User(id = address, username = "User_${address.takeLast(4)}", publicKey = publicKey)))
-            }
-        }
+        updateUserInfo(address, publicKey = publicKey)
     }
 
     suspend fun updateUsername(address: String, username: String, fromNetwork: Boolean = false) {
-        withContext(Dispatchers.IO) {
-            val user = userDao.getUserById(address)
-            val isContact = contactDao.isContact(address)
-            val isDefaultName = user?.username?.startsWith("User_") ?: true
-            
-            if (fromNetwork && isContact && !isDefaultName) return@withContext
-
-            if (user != null) {
-                if (user.username != username) {
-                    userDao.insertAll(listOf(user.copy(username = username)))
-                }
-            } else {
-                userDao.insertAll(listOf(User(id = address, username = username, publicKey = null)))
-            }
-        }
-    }
-
-    suspend fun renameContact(userId: String, newName: String) {
-        updateUsername(userId, newName, fromNetwork = false)
+        updateUserInfo(address, username = username, fromNetwork = fromNetwork)
     }
 
     suspend fun getUser(userId: String): User? = withContext(Dispatchers.IO) {
-        userDao.getUserById(userId) ?: if (userId.length > 20) {
-            val u = User(id = userId, username = "User_${userId.takeLast(4)}", publicKey = null)
-            userDao.insertAll(listOf(u))
-            u
-        } else null
+        userDao.getUserById(userId)
     }
 
     suspend fun getContacts(): List<User> = withContext(Dispatchers.IO) {
@@ -118,48 +115,36 @@ class UserRepository @Inject constructor(
         if (contactIds.isNotEmpty()) userDao.getUsersByIds(contactIds) else emptyList()
     }
 
-    /**
-     * Экспорт контактов с использованием CharArray пароля.
-     */
-    suspend fun exportContacts(outputStream: OutputStream, password: CharArray?): Boolean = withContext(Dispatchers.IO) {
+    suspend fun exportContacts(outputStream: OutputStream, password: CharArray?, includeHistory: Boolean = true): Boolean = withContext(Dispatchers.IO) {
         try {
-            val contacts = getContacts()
-            val jsonData = gson.toJson(contacts).toByteArray()
-
+            val backup = ProfileBackup(
+                users = userDao.getAllUsers(),
+                contactIds = contactDao.getAllContacts().map { it.userId },
+                groups = groupDao.getAllGroupsSync(),
+                groupMembers = groupDao.getAllMembersSync(),
+                messages = if (includeHistory) messageDao.getAllMessagesSync() else null,
+                settings = sharedPreferences.all
+            )
+            val jsonData = gson.toJson(backup).toByteArray()
             if (password != null && password.isNotEmpty()) {
-                val salt = ByteArray(16).apply { SecureRandom().nextBytes(this) }
+                val salt = ByteArray(16).apply { java.security.SecureRandom().nextBytes(this) }
                 val key = encryptionManager.deriveKeyFromPassword(password, salt).encoded
                 val encrypted = encryptionManager.encryptWithRawKey(jsonData, key)
-                outputStream.write(MARKER_PASSWORD.toInt())
-                outputStream.write(salt)
-                outputStream.write(encrypted)
-                SecureDataHandler.wipe(password) // Очищаем пароль сразу
+                outputStream.write(MARKER_PASSWORD.toInt()); outputStream.write(salt); outputStream.write(encrypted)
             } else {
                 val userId = getCurrentUserId() ?: return@withContext false
                 val mnemonic = keyStorageManager.getMnemonicAsCharArray(userId) ?: return@withContext false
                 try {
                     val seed = bip39Manager.toSeed(mnemonic)
-                    val key = MessageDigest.getInstance("SHA-256").digest(seed + "CONTACTS_BACKUP".toByteArray())
+                    val key = MessageDigest.getInstance("SHA-256").digest(seed + "PROFILE_BACKUP_V2".toByteArray())
                     val encrypted = encryptionManager.encryptWithRawKey(jsonData, key)
-                    outputStream.write(MARKER_MNEMONIC.toInt())
-                    outputStream.write(encrypted)
-                } finally {
-                    SecureDataHandler.wipe(mnemonic)
-                }
+                    outputStream.write(MARKER_MNEMONIC.toInt()); outputStream.write(encrypted)
+                } finally { SecureDataHandler.wipe(mnemonic) }
             }
-            outputStream.flush()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Export failed", e)
-            false
-        } finally {
-            outputStream.close()
-        }
+            outputStream.flush(); true
+        } catch (e: Exception) { false } finally { outputStream.close() }
     }
 
-    /**
-     * Импорт контактов с использованием CharArray пароля.
-     */
     suspend fun importContacts(inputStream: InputStream, password: CharArray?): Int = withContext(Dispatchers.IO) {
         try {
             val marker = inputStream.read()
@@ -169,16 +154,13 @@ class UserRepository @Inject constructor(
                     val mnemonic = keyStorageManager.getMnemonicAsCharArray(userId) ?: return@withContext 2
                     try {
                         val seed = bip39Manager.toSeed(mnemonic)
-                        val key = MessageDigest.getInstance("SHA-256").digest(seed + "CONTACTS_BACKUP".toByteArray())
+                        val key = MessageDigest.getInstance("SHA-256").digest(seed + "PROFILE_BACKUP_V2".toByteArray())
                         encryptionManager.decryptWithRawKey(inputStream.readBytes(), key)
-                    } finally {
-                        SecureDataHandler.wipe(mnemonic)
-                    }
+                    } finally { SecureDataHandler.wipe(mnemonic) }
                 }
                 MARKER_PASSWORD -> {
                     if (password == null || password.isEmpty()) return@withContext 1
-                    val salt = ByteArray(16)
-                    if (inputStream.read(salt) != 16) return@withContext 2
+                    val salt = ByteArray(16); if (inputStream.read(salt) != 16) return@withContext 2
                     val key = encryptionManager.deriveKeyFromPassword(password, salt).encoded
                     encryptionManager.decryptWithRawKey(inputStream.readBytes(), key)
                 }
@@ -187,26 +169,46 @@ class UserRepository @Inject constructor(
 
             if (decryptedData == null) return@withContext 2
 
-            val listType = object : TypeToken<List<User>>() {}.type
-            val importedContacts: List<User> = InputStreamReader(ByteArrayInputStream(decryptedData), StandardCharsets.UTF_8).use {
-                gson.fromJson(it, listType)
-            }
-            SecureDataHandler.wipe(decryptedData)
+            val json = String(decryptedData, StandardCharsets.UTF_8)
+            val backup = gson.fromJson(json, ProfileBackup::class.java)
+            val currentUserId = getCurrentUserId()
 
-            importedContacts.forEach { user ->
-                userDao.insertAll(listOf(user))
-                contactDao.insertContact(Contact(user.id))
+            // 1. Импорт пользователей
+            if (backup.users.isNotEmpty()) {
+                userDao.insertAll(backup.users)
             }
+
+            // 2. Импорт контактов (исключая самого себя)
+            if (backup.contactIds.isNotEmpty()) {
+                val contacts = backup.contactIds
+                    .filter { it != currentUserId }
+                    .map { Contact(it) }
+                contactDao.insertContacts(contacts)
+            }
+
+            // 3. Импорт групп и участников
+            if (backup.groups.isNotEmpty()) {
+                groupDao.insertGroups(backup.groups)
+            }
+            if (backup.groupMembers.isNotEmpty()) {
+                groupDao.insertMembers(backup.groupMembers)
+            }
+
+            // 4. Импорт сообщений
+            backup.messages?.let { messages ->
+                if (messages.isNotEmpty()) {
+                    messageDao.insertMessages(messages)
+                }
+            }
+
             0
         } catch (e: Exception) {
             Log.e(TAG, "Import failed", e)
             2
         } finally {
-            if (password != null) SecureDataHandler.wipe(password) // Очищаем пароль
             inputStream.close()
         }
     }
-    
-    suspend fun refreshUsers() {}
+
     suspend fun forceRefreshContact(userId: String) {}
 }

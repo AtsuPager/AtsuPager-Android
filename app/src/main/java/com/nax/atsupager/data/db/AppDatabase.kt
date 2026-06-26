@@ -8,9 +8,10 @@ import com.nax.atsupager.data.model.User
 @Database(
     entities = [
         ChatMessage::class, User::class, Contact::class, 
-        ChessGameEntity::class, BackgammonGameEntity::class, CheckersGameEntity::class
+        ChessGameEntity::class, BackgammonGameEntity::class, CheckersGameEntity::class,
+        GroupEntity::class, GroupMemberEntity::class
     ], 
-    version = 10, // Поднимаем версию для корректного обновления схемы
+    version = 13, // Incrementing version for Mute feature
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -21,4 +22,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun chessDao(): ChessDao
     abstract fun backgammonDao(): BackgammonDao
     abstract fun checkersDao(): CheckersDao
+    abstract fun groupDao(): GroupDao
 }
