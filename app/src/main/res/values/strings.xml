@@ -365,7 +365,7 @@
     <string name="delete_contact_action">Delete contact</string>
 
     <string name="create_profile">Create Profile</string>
-    <string name="profile_ready">Your profile is ready</string>
+    <string name="profile_ready">Your profile profile is ready</string>
     <string name="username_nickname">Username (nickname)</string>
 
     <string name="delete_for_everyone">Delete for everyone</string>
@@ -453,5 +453,10 @@
     <string name="delete_group_confirm">Delete group for everyone? All messages and media will be wiped for all members.</string>
 
     <string name="start_new_game">Start new game</string>
+
+    <string name="private_mode_not_supported">This file type cannot be sent as private because it cannot be viewed inside the app.</string>
+    <string name="private_export_blocked">Private messages cannot be exported or saved externally.</string>
+    <string name="private_forward_blocked">Private messages cannot be forwarded.</string>
+    <string name="private_copy_blocked">Private text cannot be copied.</string>
 
 </resources>

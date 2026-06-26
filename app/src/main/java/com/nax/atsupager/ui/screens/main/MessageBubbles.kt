@@ -9,6 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Reply
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -183,36 +186,29 @@ fun MessageBubble(
                     }
 
                     if (isSideTimeType) {
-                        Column {
-                            val hasCaption = !message.text.isNullOrBlank()
-                            Row(
-                                modifier = Modifier.wrapContentWidth(),
-                                verticalAlignment = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
-                                                    Alignment.CenterVertically else Alignment.Bottom,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Box(modifier = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
-                                               Modifier.weight(1f, fill = false) else Modifier) {
+                        val isMedia = message.type == MessageType.IMAGE || message.type == MessageType.VIDEO
+                        val hasCaption = !message.text.isNullOrBlank()
+
+                        if (isMedia) {
+                            Column {
+                                // Preview
+                                Box(modifier = Modifier.wrapContentWidth()) {
                                     when (message.type) {
                                         MessageType.IMAGE -> ImageMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted)
                                         MessageType.VIDEO -> VideoMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted)
-                                        MessageType.AUDIO -> AudioMessage(currentUserId, message, isDownloading, downloadProgress, isUploading, isSecure, isDecrypted, playbackState, onPlayAudio, onStopAudio, onSeekAudio)
-                                        MessageType.FILE -> FileMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted, playbackState, { onPlayAudio(message) }, onStopAudio, onSeekAudio)
                                         else -> {}
                                     }
                                 }
-                                
-                                if (!isCallEvent && !hasCaption) {
-                                    TimestampWithSeparator(message, isFromMe, isCompact = true)
+
+                                if (hasCaption) {
+                                    Text(
+                                        text = message.text,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                    )
                                 }
-                            }
-                            
-                            if (hasCaption) {
-                                Text(
-                                    text = message.text,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-                                )
+
+                                // Timestamp/Status BELOW preview, RIGHT aligned
                                 if (!isCallEvent) {
                                     TimestampWithSeparator(
                                         message = message,
@@ -220,6 +216,45 @@ fun MessageBubble(
                                         isCompact = false,
                                         modifier = Modifier.align(Alignment.End)
                                     )
+                                }
+                            }
+                        } else {
+                            // Audio / File messages (Keep compact)
+                            Column {
+                                Row(
+                                    modifier = Modifier.wrapContentWidth(),
+                                    verticalAlignment = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
+                                                        Alignment.CenterVertically else Alignment.Bottom,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(modifier = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
+                                                   Modifier.weight(1f, fill = false) else Modifier) {
+                                        when (message.type) {
+                                            MessageType.AUDIO -> AudioMessage(currentUserId, message, isDownloading, downloadProgress, isUploading, isSecure, isDecrypted, playbackState, onPlayAudio, onStopAudio, onSeekAudio)
+                                            MessageType.FILE -> FileMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted, playbackState, { onPlayAudio(message) }, onStopAudio, onSeekAudio)
+                                            else -> {}
+                                        }
+                                    }
+                                    
+                                    if (!isCallEvent && !hasCaption) {
+                                        TimestampWithSeparator(message, isFromMe, isCompact = true)
+                                    }
+                                }
+                                
+                                if (hasCaption) {
+                                    Text(
+                                        text = message.text,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                    )
+                                    if (!isCallEvent) {
+                                        TimestampWithSeparator(
+                                            message = message,
+                                            isFromMe = isFromMe,
+                                            isCompact = false,
+                                            modifier = Modifier.align(Alignment.End)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -252,13 +287,34 @@ private fun TimestampWithSeparator(
     message: ChatMessage,
     isFromMe: Boolean,
     isCompact: Boolean, 
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showPrivacyIcons: Boolean = true
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier.then(if (!isCompact) Modifier.padding(top = 2.dp) else Modifier)
     ) {
+        if (showPrivacyIcons) {
+            if (message.isPrivate) {
+                Icon(
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            if (message.isSaved) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
         if (isFromMe) {
             val icon = if (message.remoteRead) Icons.Filled.DoneAll else if (message.isDelivered) Icons.Filled.DoneAll else Icons.Filled.Done
             val tint = if (message.remoteRead) Color(0xFF4CAF50) 

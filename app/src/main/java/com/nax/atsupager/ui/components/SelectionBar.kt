@@ -63,7 +63,10 @@ fun SelectionActionsBar(
     canGroup: Boolean = false,
     onGroup: () -> Unit = {},
     canShare: Boolean = false,
-    onShare: () -> Unit = {}
+    onShare: () -> Unit = {},
+    canSave: Boolean = false,
+    isSaved: Boolean = false,
+    onToggleSave: () -> Unit = {}
 ) {
     val isAllSelected = selectedCount == totalCount && totalCount > 0
 
@@ -115,6 +118,32 @@ fun SelectionActionsBar(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    // Блок действий для одного или нескольких сообщений
+                    if (selectedCount >= 1) {
+                        if (canSave) {
+                            IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
+                                Icon(
+                                    imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = "Save",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        
+                        if (canForward) {
+                            IconButton(onClick = onForward, modifier = Modifier.size(42.dp)) {
+                                Icon(imageVector = Icons.Default.Forward, contentDescription = "Forward", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        
+                        if (canGroup) {
+                            IconButton(onClick = onGroup, modifier = Modifier.size(42.dp)) {
+                                Icon(Icons.Default.GroupAdd, "Group", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+
+                    // Блок действий ТОЛЬКО для одного сообщения
                     if (selectedCount == 1) {
                         if (canEdit) {
                             IconButton(onClick = onEdit, modifier = Modifier.size(42.dp)) {
@@ -126,21 +155,6 @@ fun SelectionActionsBar(
                                 Icon(imageVector = Icons.Default.Reply, contentDescription = "Reply", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
-                    }
-
-                    if (canGroup && selectedCount >= 1) {
-                        IconButton(onClick = onGroup, modifier = Modifier.size(42.dp)) {
-                            Icon(Icons.Default.GroupAdd, "Group", tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    if (canForward) {
-                        IconButton(onClick = onForward, modifier = Modifier.size(42.dp)) {
-                            Icon(imageVector = Icons.Default.Forward, contentDescription = "Forward", tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    if (selectedCount == 1) {
                         if (canShare) {
                             IconButton(onClick = onShare, modifier = Modifier.size(42.dp)) {
                                 Icon(Icons.Default.Share, "Share", tint = MaterialTheme.colorScheme.primary)

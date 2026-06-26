@@ -33,8 +33,13 @@ class SignalProtocolProcessor @Inject constructor(
 ) {
 
     suspend fun handleSignal(from: String, rtcData: SignalData, createdAt: Long, currentUserId: String) {
-        // Проверка "Только контакты" для сигналов вызова
-        if (rtcData.type == SignalType.OFFER) {
+        // Проверка "Только контакты" для сигналов вызова и игр
+        val isGameInvite = rtcData.type == SignalType.GAME_INVITE || 
+                          rtcData.type == SignalType.CHESS_INVITE || 
+                          rtcData.type == SignalType.BACKGAMMON_INVITE || 
+                          rtcData.type == SignalType.CHECKERS_INVITE
+
+        if (rtcData.type == SignalType.OFFER || isGameInvite) {
             val onlyContacts = sharedPreferences.getBoolean(SettingsViewModel.PREF_ONLY_CONTACTS, false)
             if (onlyContacts && !userRepository.isContact(from)) return
         }
@@ -156,7 +161,7 @@ class SignalProtocolProcessor @Inject constructor(
                     val senderRole = groupDao.getUserRole(packet.groupId, from)
                     if (from == group.ownerId || senderRole == "ADMIN") {
                         if (packet.userId == currentUserId) {
-                            notificationHelper.cancelNotification(packet.groupId.hashCode())
+                            notificationHelper.showUINotification(packet.groupId, context.getString(R.string.system_you_kicked), isGroup = true)
                             groupDao.deleteGroup(packet.groupId)
                             messageDao.deleteAllMessagesForGroup(packet.groupId)
                         } else {
@@ -212,7 +217,7 @@ class SignalProtocolProcessor @Inject constructor(
                     val packet = gson.fromJson(payload, GroupControlPacket::class.java)
                     val group = groupDao.getGroupById(packet.groupId) ?: return@let
                     if (from == group.ownerId) {
-                        notificationHelper.cancelNotification(packet.groupId.hashCode())
+                        notificationHelper.showUINotification(packet.groupId, context.getString(R.string.delete_group), isGroup = true)
                         groupDao.deleteGroup(packet.groupId)
                         messageDao.deleteAllMessagesForGroup(packet.groupId)
                     }
@@ -225,6 +230,17 @@ class SignalProtocolProcessor @Inject constructor(
                 
                 notificationHelper.showCallNotification(from, rtcData.callId ?: "unknown", rtcData.isVideo, rtcData.senderName)
                 callStatusManager.startCall(from, false, rtcData.isVideo, rtcData.callId, rtcData.payload, rtcData.senderName)
+            }
+            SignalType.GAME_INVITE, SignalType.CHESS_INVITE, SignalType.BACKGAMMON_INVITE, SignalType.CHECKERS_INVITE -> {
+                val gameName = when(rtcData.type) {
+                    SignalType.CHESS_INVITE -> context.getString(R.string.chess)
+                    SignalType.BACKGAMMON_INVITE -> context.getString(R.string.backgammon)
+                    SignalType.CHECKERS_INVITE -> context.getString(R.string.checkers)
+                    else -> context.getString(R.string.games)
+                }
+                val senderName = rtcData.senderName ?: userRepository.getUser(from)?.username ?: from.takeLast(6)
+                val body = context.getString(R.string.invite_msg, senderName, gameName)
+                notificationHelper.showUINotification(from, body, isGroup = false)
             }
             else -> {}
         }

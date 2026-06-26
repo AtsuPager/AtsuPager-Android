@@ -41,6 +41,7 @@ class ChatMediaSender @Inject constructor(
 
     suspend fun forwardMessage(message: ChatMessage, targetIds: List<String>) {
         if (targetIds.isEmpty()) return
+        if (message.isPrivate) return // Safety check
         val currentUserId = authRepository.getCurrentUserId() ?: return
         val localKey = keyStorageManager.getMediaEncryptionKey(currentUserId)
 
@@ -106,7 +107,7 @@ class ChatMediaSender @Inject constructor(
         }
     }
 
-    suspend fun sendMediaFile(uri: Uri, caption: String, targetId: String, isGroup: Boolean, replyingTo: ChatMessage?, memberNames: Map<String, String>, user: User?): Long {
+    suspend fun sendMediaFile(uri: Uri, caption: String, targetId: String, isGroup: Boolean, replyingTo: ChatMessage?, memberNames: Map<String, String>, user: User?, isPrivate: Boolean = false): Long {
         val currentUserId = authRepository.getCurrentUserId() ?: return -1
         val localKey = keyStorageManager.getMediaEncryptionKey(currentUserId)
         
@@ -151,7 +152,8 @@ class ChatMediaSender @Inject constructor(
             text = caption, timestamp = System.currentTimeMillis(), isRead = true, type = messageType,
             fileName = metadata.first, fileSize = metadata.second, mimeType = metadata.third,
             width = dimensions?.first, height = dimensions?.second, localFilePath = secureFile.absolutePath,
-            replyToId = replyingTo?.remoteId, replyToName = replyToName, replyToText = replyingTo?.text, replyToType = replyingTo?.type
+            replyToId = replyingTo?.remoteId, replyToName = replyToName, replyToText = replyingTo?.text, replyToType = replyingTo?.type,
+            isPrivate = isPrivate
         )
 
         val messageId = messageDao.insertMessage(initialMsg)
@@ -172,7 +174,7 @@ class ChatMediaSender @Inject constructor(
         return messageId
     }
 
-    suspend fun sendCapturedImage(imageData: ByteArray, caption: String, targetId: String, isGroup: Boolean, replyingTo: ChatMessage?, memberNames: Map<String, String>, user: User?): Long {
+    suspend fun sendCapturedImage(imageData: ByteArray, caption: String, targetId: String, isGroup: Boolean, replyingTo: ChatMessage?, memberNames: Map<String, String>, user: User?, isPrivate: Boolean = false): Long {
         val currentUserId = authRepository.getCurrentUserId() ?: return -1
         val localKey = keyStorageManager.getMediaEncryptionKey(currentUserId)
         
@@ -211,7 +213,8 @@ class ChatMediaSender @Inject constructor(
             fileName = "Captured.jpg", fileSize = imageData.size.toLong(), mimeType = "image/jpeg",
             width = if (opts.outWidth > 0) opts.outWidth else null, height = if (opts.outHeight > 0) opts.outHeight else null,
             localFilePath = secureFile.absolutePath, replyToId = replyingTo?.remoteId, replyToName = replyToName,
-            replyToText = replyingTo?.text, replyToType = replyingTo?.type
+            replyToText = replyingTo?.text, replyToType = replyingTo?.type,
+            isPrivate = isPrivate
         )
 
         val messageId = messageDao.insertMessage(initialMsg)
@@ -231,7 +234,7 @@ class ChatMediaSender @Inject constructor(
         return messageId
     }
 
-    suspend fun sendVoiceMessage(file: File, duration: Int, targetId: String, isGroup: Boolean, replyingTo: ChatMessage?, memberNames: Map<String, String>, user: User?): Long {
+    suspend fun sendVoiceMessage(file: File, duration: Int, targetId: String, isGroup: Boolean, replyingTo: ChatMessage?, memberNames: Map<String, String>, user: User?, isPrivate: Boolean = false): Long {
         val currentUserId = authRepository.getCurrentUserId() ?: return -1
         val localKey = keyStorageManager.getMediaEncryptionKey(currentUserId)
         val targetDir = sessionManager.getMediaDir(targetId, "outgoing")
@@ -252,7 +255,8 @@ class ChatMediaSender @Inject constructor(
             text = "", timestamp = System.currentTimeMillis(), isRead = true, type = MessageType.AUDIO,
             fileName = file.name, localFilePath = file.absolutePath, fileSize = file.length(),
             audioDuration = duration, mimeType = "audio/aac",
-            replyToId = replyingTo?.remoteId, replyToName = replyToName, replyToText = replyingTo?.text, replyToType = replyingTo?.type
+            replyToId = replyingTo?.remoteId, replyToName = replyToName, replyToText = replyingTo?.text, replyToType = replyingTo?.type,
+            isPrivate = isPrivate
         )
         val messageId = messageDao.insertMessage(initialMessage)
         val uploadResult = fileUploader.uploadReadyFile("Atsusend", uploadFile, transportResult.encryptedKeyBase64)

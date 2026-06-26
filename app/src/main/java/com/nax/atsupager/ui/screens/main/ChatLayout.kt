@@ -60,6 +60,8 @@ fun ChatLayout(
     onCaptionChange: (String) -> Unit,
     onCancelAttachment: () -> Unit,
     onSendAttachment: () -> Unit,
+    onTogglePrivateMode: () -> Unit,
+    onTogglePendingPrivate: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     val listState = rememberLazyListState()
@@ -200,7 +202,14 @@ fun ChatLayout(
                         onCaptureVideo = onCaptureVideo,
                         onCaptionChange = onCaptionChange,
                         onCancelAttachment = onCancelAttachment,
-                        onSendAttachment = onSendAttachment
+                        onSendAttachment = onSendAttachment,
+                        onTogglePrivate = {
+                            if (uiState.pendingAttachment != null) {
+                                onTogglePendingPrivate()
+                            } else {
+                                onTogglePrivateMode()
+                            }
+                        }
                     )
                 }
                 

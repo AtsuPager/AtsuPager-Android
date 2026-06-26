@@ -71,20 +71,16 @@ class NotificationHelper @Inject constructor(
             val name: String
             if (isGroup) {
                 val group = groupDao.getGroupById(id)
-                if (group == null) {
-                    // Группа удалена, не показываем уведомление с UUID
-                    cancelNotification(id.hashCode())
-                    return@launch
-                }
-                name = group.name
+                name = group?.name ?: "${context.getString(R.string.group)} ${id.takeLast(4)}"
             } else {
                 val contact = contactsRepository.getContact(id)
                 val user = userRepository.getUser(id)
                 if (contact == null && user == null && id.contains("-")) {
-                    // Попытка показать уведомление для несуществующего контакта (возможно, остаток от группы)
-                    return@launch
+                    // Possible group leftovers
+                    name = "${context.getString(R.string.group)} ${id.takeLast(4)}"
+                } else {
+                    name = contact?.username ?: user?.username ?: id
                 }
-                name = contact?.username ?: user?.username ?: id
             }
             
             val intent = Intent(context, MainActivity::class.java).apply {

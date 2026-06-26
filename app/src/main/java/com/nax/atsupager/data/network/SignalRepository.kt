@@ -141,15 +141,11 @@ class SignalRepository @Inject constructor(
             }
             
             if (unreadCount > 0) {
-                notificationHelper.showUINotification(chatId, context.getString(R.string.notification_new_msg), isGroup = flagForResurface(chatId))
+                notificationHelper.showUINotification(chatId, context.getString(R.string.notification_new_msg), isGroup = isGroup)
             } else {
                 lastUnreadChatId = null
             }
         }
-    }
-
-    private suspend fun flagForResurface(id: String): Boolean = withContext(Dispatchers.IO) {
-        groupDao.getGroupById(id) != null
     }
 
     fun startPolling() {
@@ -408,6 +404,18 @@ class SignalRepository @Inject constructor(
     fun sendRemoteBulkDelete(targetId: String, isGroup: Boolean, beforeTimestamp: Long, lastRemoteId: String?, isFullClear: Boolean = false) { val currentUserId = sharedPreferences.getString(AuthRepository.KEY_USER_ID, null) ?: return; val signal = SignalData("msg_ctrl", SignalType.MSG_BULK_DELETE, gson.toJson(BulkDeletePacket(currentUserId, targetId, lastRemoteId, beforeTimestamp, isFullClear))); if (isGroup) repositoryScope.launch { groupDao.getGroupMemberIds(targetId).forEach { if (it != currentUserId) sendSignal(it, signal) } } else sendSignal(targetId, signal) }
     fun sendReceipt(contactId: String, remoteId: String, type: SignalType) { if (!sharedPreferences.getBoolean(SettingsViewModel.PREF_READ_RECEIPTS, true)) return; sendSignal(contactId, SignalData("msg_receipt", type, gson.toJson(ReceiptPacket(remoteId)))) }
     suspend fun sendMessage(contactId: String, text: String) { outgoingSignalChannel.send(OutgoingSignalRequest(contactId, text.toCharArray(), true)) }
+    suspend fun sendMessage(contactId: String, text: String, isPrivate: Boolean = false) { 
+        val currentUserId = authRepository.getCurrentUserId() ?: return
+        val message = ChatMessage(
+            fromUserId = currentUserId,
+            toUserId = contactId,
+            text = text,
+            timestamp = System.currentTimeMillis(),
+            isPrivate = isPrivate,
+            type = MessageType.TEXT
+        )
+        outgoingSignalChannel.send(OutgoingSignalRequest(contactId, gson.toJson(message).toCharArray(), true)) 
+    }
     suspend fun sendFileMessage(contactId: String, message: ChatMessage) { outgoingSignalChannel.send(OutgoingSignalRequest(contactId, gson.toJson(message).toCharArray(), true)) }
     suspend fun sendGroupMessage(groupId: String, message: ChatMessage) { val members = groupDao.getGroupMemberIds(groupId); val me = authRepository.getCurrentUserId() ?: return; val json = gson.toJson(message); members.forEach { if (it != me) outgoingSignalChannel.send(OutgoingSignalRequest(it, json.toCharArray(), true)) } }
     fun sendGroupInvite(groupId: String, name: String, members: List<GroupMemberPacket>, ownerId: String) {

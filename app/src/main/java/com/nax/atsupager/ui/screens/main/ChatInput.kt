@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 AtsuPager Author. All rights reserved.
+ * Published for security audit and educational purposes only.
+ */
+
 package com.nax.atsupager.ui.screens.main
 
 import androidx.compose.animation.*
@@ -9,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,7 +50,8 @@ fun MessageInput(
     onCaptureVideo: () -> Unit,
     onCaptionChange: (String) -> Unit,
     onCancelAttachment: () -> Unit,
-    onSendAttachment: () -> Unit
+    onSendAttachment: () -> Unit,
+    onTogglePrivate: () -> Unit = {}
 ) {
     val isRecordingOrReady = uiState.isRecording || uiState.isAudioReadyToSend
     val hasPendingAttachment = uiState.pendingAttachment != null
@@ -55,7 +62,8 @@ fun MessageInput(
                 attachment = uiState.pendingAttachment,
                 onCaptionChange = onCaptionChange,
                 onCancel = onCancelAttachment,
-                onSend = onSendAttachment
+                onSend = onSendAttachment,
+                onTogglePrivate = onTogglePrivate
             )
         } else {
             AnimatedContent(
@@ -70,17 +78,20 @@ fun MessageInput(
                         uiState = uiState,
                         onCancel = onCancelRecording,
                         onStop = onStopRecording,
-                        onSend = onSendRecordedAudio
+                        onSend = onSendRecordedAudio,
+                        onTogglePrivate = onTogglePrivate
                     )
                 } else {
                     InputLayout(
                         text = text,
+                        uiState = uiState,
                         onTextChange = onTextChange,
                         onSend = onSend,
                         onAttachFile = onAttachFile,
                         onTakePhoto = onTakePhoto,
                         onCaptureVideo = onCaptureVideo,
-                        onStartRecording = onStartRecording
+                        onStartRecording = onStartRecording,
+                        onTogglePrivate = onTogglePrivate
                     )
                 }
             }
@@ -93,7 +104,8 @@ fun AttachmentPreview(
     attachment: PendingAttachment,
     onCaptionChange: (String) -> Unit,
     onCancel: () -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onTogglePrivate: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -122,6 +134,22 @@ fun AttachmentPreview(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+
+                val canBePrivate = attachment.type == MessageType.IMAGE || 
+                                  attachment.type == MessageType.VIDEO || 
+                                  attachment.type == MessageType.AUDIO || 
+                                  attachment.type == MessageType.TEXT
+
+                if (canBePrivate) {
+                    IconButton(onClick = onTogglePrivate) {
+                        Icon(
+                            imageVector = if (attachment.isPrivate) Icons.Default.Shield else Icons.Outlined.Shield,
+                            contentDescription = "Private",
+                            tint = if (attachment.isPrivate) MaterialTheme.colorScheme.primary else Color.Gray
+                        )
+                    }
+                }
+
                 IconButton(onClick = onCancel) {
                     Icon(Icons.Default.Close, contentDescription = null)
                 }
@@ -156,7 +184,8 @@ private fun RecordingLayout(
     uiState: MainUiState,
     onCancel: () -> Unit,
     onStop: () -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onTogglePrivate: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -184,8 +213,7 @@ private fun RecordingLayout(
         Text(
             text = uiState.recordingTime,
             style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            softWrap = false
+            maxLines = 1, softWrap = false
         )
 
         WaveformCanvas(
@@ -195,6 +223,15 @@ private fun RecordingLayout(
                 .height(24.dp)
                 .padding(horizontal = 8.dp)
         )
+
+        IconButton(onClick = onTogglePrivate, modifier = Modifier.size(36.dp)) {
+            Icon(
+                imageVector = if (uiState.isPrivateMode) Icons.Default.Shield else Icons.Outlined.Shield,
+                contentDescription = "Private",
+                tint = if (uiState.isPrivateMode) MaterialTheme.colorScheme.primary else Color.Gray,
+                modifier = Modifier.size(20.dp)
+            )
+        }
 
         if (uiState.isRecording) {
             IconButton(onClick = onStop, modifier = Modifier.size(36.dp)) {
@@ -211,29 +248,41 @@ private fun RecordingLayout(
 @Composable
 private fun InputLayout(
     text: String,
+    uiState: MainUiState,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onAttachFile: () -> Unit,
     onTakePhoto: () -> Unit,
     onCaptureVideo: () -> Unit,
-    onStartRecording: () -> Unit
+    onStartRecording: () -> Unit,
+    onTogglePrivate: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 8.dp, top = 6.dp, end = 8.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.Bottom // Текст растет вверх
+        verticalAlignment = Alignment.Bottom
     ) {
         StyledTextField(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 42.dp, max = 150.dp), // Минимальная высота как у поиска
+                .heightIn(min = 42.dp, max = 150.dp),
             placeholderText = stringResource(R.string.message_placeholder),
             shape = RoundedCornerShape(12.dp),
-            singleLine = false, // Позволяем перенос строк в чате
-            keyboardOptions = KeyboardSecurity.secureChatOptions
+            singleLine = false,
+            keyboardOptions = KeyboardSecurity.secureChatOptions,
+            leadingIcon = {
+                IconButton(onClick = onTogglePrivate, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = if (uiState.isPrivateMode) Icons.Default.Shield else Icons.Outlined.Shield,
+                        contentDescription = "Private",
+                        tint = if (uiState.isPrivateMode) MaterialTheme.colorScheme.primary else Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         )
         
         Spacer(modifier = Modifier.width(8.dp))
@@ -352,7 +401,7 @@ fun WaveformCanvas(
 
         displayAmplitudes.forEachIndexed { index, amplitude ->
             val x = index * (barWidth + gap)
-            val barHeight = (amplitude * height).coerceAtLeast(2.dp.toPx())
+            val barHeight = height * amplitude
             val y = (height - barHeight) / 2
             drawRoundRect(
                 color = Color.Red,

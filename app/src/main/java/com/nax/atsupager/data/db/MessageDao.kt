@@ -66,10 +66,10 @@ interface MessageDao {
     @Query("UPDATE messages SET fileEncryptionKey = :key WHERE id = :messageId")
     suspend fun updateFileEncryptionKey(messageId: Long, key: String)
 
-    @Query("DELETE FROM messages WHERE (fromUserId = :userId1 AND toUserId = :userId2) OR (fromUserId = :userId2 AND toUserId = :userId1)")
+    @Query("DELETE FROM messages WHERE ((fromUserId = :userId1 AND toUserId = :userId2) OR (fromUserId = :userId2 AND toUserId = :userId1)) AND isSaved = 0")
     suspend fun deleteAllMessagesForChat(userId1: String, userId2: String)
 
-    @Query("DELETE FROM messages WHERE groupId = :groupId")
+    @Query("DELETE FROM messages WHERE groupId = :groupId AND isSaved = 0")
     suspend fun deleteAllMessagesForGroup(groupId: String)
 
     @Query("DELETE FROM messages WHERE id = :messageId")
@@ -99,10 +99,10 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE fromUserId = :authorId AND groupId = :groupId AND timestamp <= :threshold")
     suspend fun deleteMessagesByAuthorInGroup(authorId: String, groupId: String, threshold: Long)
 
-    @Query("DELETE FROM messages WHERE groupId = :groupId AND timestamp <= :threshold")
+    @Query("DELETE FROM messages WHERE groupId = :groupId AND timestamp <= :threshold AND isSaved = 0")
     suspend fun deleteMessagesInGroupBefore(groupId: String, threshold: Long)
 
-    @Query("DELETE FROM messages WHERE ((fromUserId = :userId1 AND toUserId = :userId2) OR (fromUserId = :userId2 AND toUserId = :userId1)) AND timestamp <= :threshold")
+    @Query("DELETE FROM messages WHERE ((fromUserId = :userId1 AND toUserId = :userId2) OR (fromUserId = :userId2 AND toUserId = :userId1)) AND timestamp <= :threshold AND isSaved = 0")
     suspend fun deleteMessagesInChatBefore(userId1: String, userId2: String, threshold: Long)
 
     @Query("UPDATE messages SET isDelivered = 1 WHERE remoteId = :remoteId")
@@ -131,17 +131,20 @@ interface MessageDao {
             "ORDER BY timestamp DESC")
     fun getLastMessagesForAllChats(currentUserId: String): Flow<List<ChatMessage>>
 
-    @Query("SELECT * FROM messages WHERE timestamp < :threshold")
+    @Query("SELECT * FROM messages WHERE timestamp < :threshold AND isSaved = 0")
     suspend fun getExpiredMessages(threshold: Long): List<ChatMessage>
 
-    @Query("DELETE FROM messages WHERE timestamp < :threshold")
+    @Query("DELETE FROM messages WHERE timestamp < :threshold AND isSaved = 0")
     suspend fun deleteExpiredMessages(threshold: Long)
 
     @Query("SELECT COUNT(id) FROM messages WHERE localFilePath = :filePath")
     suspend fun getMessageCountByFilePath(filePath: String): Int
 
-    @Query("DELETE FROM messages")
+    @Query("DELETE FROM messages WHERE isSaved = 0")
     suspend fun deleteAllMessages()
+
+    @Query("UPDATE messages SET isSaved = :isSaved WHERE id = :messageId")
+    suspend fun updateSavedStatus(messageId: Long, isSaved: Boolean)
 
     @RawQuery
     suspend fun checkpoint(supportSQLiteQuery: SupportSQLiteQuery): Int

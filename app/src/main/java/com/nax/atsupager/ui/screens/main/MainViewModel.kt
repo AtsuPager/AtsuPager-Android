@@ -44,7 +44,8 @@ data class PendingAttachment(
     val type: MessageType,
     val fileName: String,
     val fileSize: Long,
-    val caption: String = ""
+    val caption: String = "",
+    val isPrivate: Boolean = false
 )
 
 data class MainUiState(
@@ -84,7 +85,8 @@ data class MainUiState(
     val pendingAttachment: PendingAttachment? = null,
     val isMuted: Boolean = false,
     val isCameraOpen: Boolean = false,
-    val isAdmin: Boolean = false
+    val isAdmin: Boolean = false,
+    val isPrivateMode: Boolean = false
 )
 
 @HiltViewModel
@@ -339,12 +341,14 @@ class MainViewModel @Inject constructor(
                     replyToId = replyTo?.remoteId,
                     replyToName = replyToName,
                     replyToText = replyTo?.text,
-                    replyToType = replyTo?.type
+                    replyToType = replyTo?.type,
+                    isPrivate = _uiState.value.isPrivateMode
                 )
                 val id = messageDao.insertMessage(message)
                 if (isGroup && groupId != null) signalRepository.sendGroupMessage(groupId, message.copy(id = id))
                 else if (contactId != null) signalRepository.sendFileMessage(contactId, message.copy(id = id))
                 cancelReply()
+                _uiState.update { it.copy(isPrivateMode = false) }
             }
         }
     }
@@ -352,7 +356,8 @@ class MainViewModel @Inject constructor(
     fun prepareFileAttachment(uri: Uri) {
         viewModelScope.launch {
             val metadata = MainUiUtils.getFileMetadata(context, uri) ?: return@launch
-            _uiState.update { it.copy(pendingAttachment = PendingAttachment(uri, null, MainUiUtils.determineMessageType(metadata.third), metadata.first, metadata.second)) }
+            val type = MainUiUtils.determineMessageType(metadata.third)
+            _uiState.update { it.copy(pendingAttachment = PendingAttachment(uri, null, type, metadata.first, metadata.second)) }
         }
     }
 
@@ -364,6 +369,18 @@ class MainViewModel @Inject constructor(
     }
 
     fun updatePendingAttachmentCaption(caption: String) = _uiState.update { s -> s.copy(pendingAttachment = s.pendingAttachment?.copy(caption = caption)) }
+    fun togglePendingAttachmentPrivate() = _uiState.update { s ->
+        val canBePrivate = s.pendingAttachment?.type == MessageType.IMAGE ||
+                s.pendingAttachment?.type == MessageType.VIDEO ||
+                s.pendingAttachment?.type == MessageType.AUDIO ||
+                s.pendingAttachment?.type == MessageType.TEXT
+        
+        if (canBePrivate) {
+            s.copy(pendingAttachment = s.pendingAttachment?.copy(isPrivate = !s.pendingAttachment.isPrivate))
+        } else {
+            s.copy(error = context.getString(com.nax.atsupager.R.string.private_mode_not_supported))
+        }
+    }
     fun cancelPendingAttachment() = _uiState.update { it.copy(pendingAttachment = null) }
 
     fun sendPendingAttachment() {
@@ -371,8 +388,8 @@ class MainViewModel @Inject constructor(
         val targetId = contactId ?: groupId ?: return
         viewModelScope.launch {
             val msgId = when {
-                pending.imageData != null -> chatMediaSender.sendCapturedImage(pending.imageData, pending.caption, targetId, isGroup, _uiState.value.replyingTo, _uiState.value.memberNames, _uiState.value.user)
-                pending.uri != null -> chatMediaSender.sendMediaFile(pending.uri, pending.caption, targetId, isGroup, _uiState.value.replyingTo, _uiState.value.memberNames, _uiState.value.user)
+                pending.imageData != null -> chatMediaSender.sendCapturedImage(pending.imageData, pending.caption, targetId, isGroup, _uiState.value.replyingTo, _uiState.value.memberNames, _uiState.value.user, pending.isPrivate)
+                pending.uri != null -> chatMediaSender.sendMediaFile(pending.uri, pending.caption, targetId, isGroup, _uiState.value.replyingTo, _uiState.value.memberNames, _uiState.value.user, pending.isPrivate)
                 else -> -1L
             }
             if (msgId != -1L) cancelReply()
@@ -412,14 +429,19 @@ class MainViewModel @Inject constructor(
         if (duration > 0) {
             viewModelScope.launch {
                 val targetId = contactId ?: groupId ?: return@launch
-                chatMediaSender.sendVoiceMessage(file, duration, targetId, isGroup, _uiState.value.replyingTo, _uiState.value.memberNames, _uiState.value.user)
+                chatMediaSender.sendVoiceMessage(file, duration, targetId, isGroup, _uiState.value.replyingTo, _uiState.value.memberNames, _uiState.value.user, _uiState.value.isPrivateMode)
                 cancelReply()
+                _uiState.update { it.copy(isPrivateMode = false) }
             }
         } else file.delete()
         recordedFile = null; _uiState.update { it.copy(isAudioReadyToSend = false) }
     }
 
     fun downloadFile(message: ChatMessage, toPublicFolder: Boolean) {
+        if (message.isPrivate && toPublicFolder) {
+            _uiState.update { it.copy(error = context.getString(com.nax.atsupager.R.string.private_export_blocked)) }
+            return
+        }
         if (toPublicFolder) fileDownloader.downloadToPublicFolder(message) else fileDownloader.downloadFile(message)
         if (!isGroup && contactId != null && sharedPreferences.getBoolean(SettingsViewModel.PREF_READ_RECEIPTS, true)) signalRepository.sendReceipt(contactId, message.remoteId, SignalType.FILE_DOWNLOADED)
     }
@@ -464,12 +486,35 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun exportAndKeepMessage(message: ChatMessage) = viewModelScope.launch { fileDownloader.exportEncryptedFile(message)?.let { messageDao.updateLocalFilePath(message.id, it.toString()) } }
+    fun exportAndKeepMessage(message: ChatMessage) {
+        if (message.isPrivate) {
+            _uiState.update { it.copy(error = context.getString(com.nax.atsupager.R.string.private_export_blocked)) }
+            return
+        }
+        viewModelScope.launch { fileDownloader.exportEncryptedFile(message)?.let { messageDao.updateLocalFilePath(message.id, it.toString()) } }
+    }
+
+    fun toggleSaveMessages(messages: List<ChatMessage>) {
+        val targetStatus = !messages.all { it.isSaved }
+        viewModelScope.launch {
+            messages.forEach { msg ->
+                if (msg.isSaved != targetStatus) {
+                    messageDao.updateSavedStatus(msg.id, targetStatus)
+                }
+            }
+        }
+    }
 
     fun forwardSelectedMessages(targetIds: List<String>) {
         val msgs = _uiState.value.messages.filter { it.id in _uiState.value.selectedMessageIds }
+        val firstMsg = msgs.firstOrNull() ?: return
+        if (firstMsg.isPrivate) {
+            _uiState.update { it.copy(error = context.getString(com.nax.atsupager.R.string.private_forward_blocked)) }
+            clearMessageSelection()
+            return
+        }
         clearMessageSelection()
-        viewModelScope.launch(Dispatchers.IO) { chatMediaSender.forwardMessage(msgs.first(), targetIds) } // Для простоты пока берем первое, можно расширить до msgs.forEach
+        viewModelScope.launch(Dispatchers.IO) { chatMediaSender.forwardMessage(firstMsg, targetIds) }
     }
 
     fun addGroupMembers(memberIds: List<String>) = groupId?.let { id -> viewModelScope.launch(Dispatchers.IO) { groupRepository.addMembersToGroup(id, memberIds); refreshMemberNames(id) } }
@@ -483,6 +528,10 @@ class MainViewModel @Inject constructor(
             if (isGroup && groupId != null) groupDao.setMuted(groupId, muted) else contactId?.let { userDao.setMuted(it, muted) }
             withContext(Dispatchers.Main) { _uiState.update { it.copy(isMuted = muted) } }
         }
+    }
+
+    fun togglePrivateMode() {
+        _uiState.update { it.copy(isPrivateMode = !it.isPrivateMode) }
     }
 
     fun initiateCall(isVideo: Boolean) = contactId?.let { id ->

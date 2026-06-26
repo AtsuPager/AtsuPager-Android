@@ -11,7 +11,7 @@ import com.nax.atsupager.data.model.User
         ChessGameEntity::class, BackgammonGameEntity::class, CheckersGameEntity::class,
         GroupEntity::class, GroupMemberEntity::class
     ], 
-    version = 13, // Incrementing version for Mute feature
+    version = 14, // Incrementing version for Private & Saved messages feature
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -304,12 +304,23 @@ fun MainScreen(
                         }
                     },
                     canReply = true,
-                    onForward = { activeDialog = MainDialog.ForwardPicker },
-                    canForward = true,
+                    onForward = { 
+                        if (singleSelectedMessage?.isPrivate == true) {
+                            viewModel.onErrorDismissed()
+                            viewModel.clearMessageSelection()
+                        } else {
+                            activeDialog = MainDialog.ForwardPicker 
+                        }
+                    },
+                    canForward = singleSelectedMessage?.isPrivate != true,
                     onDelete = { activeDialog = MainDialog.BulkDelete },
-                    canCopy = singleSelectedMessage?.type == MessageType.TEXT,
+                    canCopy = singleSelectedMessage?.type == MessageType.TEXT && singleSelectedMessage?.isPrivate != true,
                     onCopy = {
                         singleSelectedMessage?.let { msg ->
+                            if (msg.isPrivate) {
+                                // Blocked via 'canCopy' check, but safety first
+                                return@let
+                            }
                             ClipboardUiHelper.copyWithNotification(
                                 context = context,
                                 scope = scope,
@@ -320,15 +331,18 @@ fun MainScreen(
                             viewModel.clearMessageSelection()
                         }
                     },
-                    canSelectText = singleSelectedMessage?.type == MessageType.TEXT,
+                    canSelectText = singleSelectedMessage?.type == MessageType.TEXT && singleSelectedMessage?.isPrivate != true,
                     onSelectText = {
                         singleSelectedMessage?.let { msg ->
                             viewModel.setSelectingText(msg.id)
                             viewModel.clearMessageSelection()
                         }
                     },
-                    canExport = singleSelectedMessage?.localFilePath?.endsWith(".enc") == true,
+                    canExport = singleSelectedMessage?.localFilePath?.endsWith(".enc") == true && singleSelectedMessage?.isPrivate != true,
                     onExport = { activeDialog = MainDialog.ExportConfirm },
+                    canSave = selectedMessages.isNotEmpty(),
+                    isSaved = selectedMessages.isNotEmpty() && selectedMessages.all { it.isSaved },
+                    onToggleSave = { viewModel.toggleSaveMessages(selectedMessages) },
                     modifier = Modifier.matchParentSize()
                 )
             }
@@ -403,6 +417,8 @@ fun MainScreen(
                             onCaptionChange = viewModel::updatePendingAttachmentCaption,
                             onCancelAttachment = viewModel::cancelPendingAttachment,
                             onSendAttachment = viewModel::sendPendingAttachment,
+                            onTogglePrivateMode = viewModel::togglePrivateMode,
+                            onTogglePendingPrivate = viewModel::togglePendingAttachmentPrivate,
                             snackbarHostState = snackbarHostState
                         )
                     }

@@ -120,5 +120,13 @@ data class ChatMessage(
 
     @ColumnInfo(name = "replyToType")
     @SerializedName("replyToType")
-    val replyToType: MessageType? = null
+    val replyToType: MessageType? = null,
+
+    @ColumnInfo(name = "isPrivate")
+    @SerializedName("isPrivate")
+    val isPrivate: Boolean = false,
+
+    @ColumnInfo(name = "isSaved")
+    @SerializedName("isSaved")
+    val isSaved: Boolean = false
 )

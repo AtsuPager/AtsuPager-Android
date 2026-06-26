@@ -63,7 +63,7 @@ class AtsuPagerApp : Application(), ImageLoaderFactory, Configuration.Provider {
             }
         }
 
-        createNotificationChannel()
+        createNotificationChannels()
 
         // Запуск планировщика очистки сообщений
         messageLifecycleManager.schedulePeriodicCleanup()
@@ -71,14 +71,40 @@ class AtsuPagerApp : Application(), ImageLoaderFactory, Configuration.Provider {
 
     override fun newImageLoader(): ImageLoader = imageLoaderProvider.get()
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java) ?: return
+
+            // Канал для звонков
+            val callChannel = NotificationChannel(
+                "AtsuCallChannel_v1",
+                getString(R.string.channel_calls),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = getString(R.string.channel_description)
+                enableVibration(true)
+            }
+
+            // Канал для сообщений и игровых уведомлений
+            val messageChannel = NotificationChannel(
+                "AtsuMessageChannel_v3",
+                getString(R.string.channel_messages),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = getString(R.string.channel_description)
+                enableVibration(true)
+                setShowBadge(true)
+            }
+
+            // Оригинальный канал службы (восстановлен)
             val serviceChannel = NotificationChannel(
                 "WebRtcServiceChannel",
                 "Active Call Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            val manager = getSystemService(NotificationManager::class.java)
+
+            manager.createNotificationChannel(callChannel)
+            manager.createNotificationChannel(messageChannel)
             manager.createNotificationChannel(serviceChannel)
         }
     }
