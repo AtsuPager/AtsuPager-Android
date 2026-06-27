@@ -110,7 +110,7 @@ class SignalProtocolProcessor @Inject constructor(
                                 if (from == existing.ownerId || senderRole == "ADMIN") {
                                     val allMsgs = messageDao.getMessagesForGroupSync(packet.chatId)
                                     allMsgs.forEach { msg -> msg.localFilePath?.let { try { File(it).delete() } catch(_:Exception){} } }
-                                    messageDao.deleteAllMessagesForGroup(packet.chatId)
+                                    messageDao.forceDeleteAllMessagesForGroup(packet.chatId)
                                 }
                             } else {
                                 val anchorMsg = packet.lastRemoteId?.let { messageDao.getMessageByRemoteId(it) }
@@ -162,6 +162,8 @@ class SignalProtocolProcessor @Inject constructor(
                     if (from == group.ownerId || senderRole == "ADMIN") {
                         if (packet.userId == currentUserId) {
                             notificationHelper.showUINotification(packet.groupId, context.getString(R.string.system_you_kicked), isGroup = true)
+                            val allMsgs = messageDao.getMessagesForGroupSync(packet.groupId)
+                            allMsgs.filter { !it.isSaved }.forEach { msg -> msg.localFilePath?.let { try { File(it).delete() } catch(_:Exception){} } }
                             groupDao.deleteGroup(packet.groupId)
                             messageDao.deleteAllMessagesForGroup(packet.groupId)
                         } else {
@@ -218,8 +220,10 @@ class SignalProtocolProcessor @Inject constructor(
                     val group = groupDao.getGroupById(packet.groupId) ?: return@let
                     if (from == group.ownerId) {
                         notificationHelper.showUINotification(packet.groupId, context.getString(R.string.delete_group), isGroup = true)
+                        val allMsgs = messageDao.getMessagesForGroupSync(packet.groupId)
+                        allMsgs.forEach { msg -> msg.localFilePath?.let { try { File(it).delete() } catch(_:Exception){} } }
                         groupDao.deleteGroup(packet.groupId)
-                        messageDao.deleteAllMessagesForGroup(packet.groupId)
+                        messageDao.forceDeleteAllMessagesForGroup(packet.groupId)
                     }
                 }
             }

@@ -394,7 +394,7 @@ class SignalRepository @Inject constructor(
                 val messagesToRemove = if (isGroupOwner) allMessages else allMessages.filter { it.fromUserId == currentUserId }
                 if (messagesToRemove.isNotEmpty() || (isGroup && isGroupOwner)) { val lastMsg = messagesToRemove.maxByOrNull { it.timestamp }; sendRemoteBulkDelete(targetId, isGroup, lastMsg?.timestamp ?: System.currentTimeMillis(), lastMsg?.remoteId, isGroupOwner) }
             }
-            if (deleteFiles) allMessages.forEach { msg -> msg.localFilePath?.let { path -> if (messageDao.getMessageCountByFilePath(path) <= 1) try { File(path).let { if (it.exists()) it.delete() } } catch (e: Exception) { } } }
+            if (deleteFiles) allMessages.forEach { msg -> if (!msg.isSaved) msg.localFilePath?.let { path -> if (messageDao.getMessageCountByFilePath(path) <= 1) try { File(path).let { if (it.exists()) it.delete() } } catch (e: Exception) { } } }
             if (isGroup) messageDao.deleteAllMessagesForGroup(targetId) else messageDao.deleteAllMessagesForChat(currentUserId, targetId)
         }
     }

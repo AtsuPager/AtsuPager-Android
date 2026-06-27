@@ -146,6 +146,12 @@ interface MessageDao {
     @Query("UPDATE messages SET isSaved = :isSaved WHERE id = :messageId")
     suspend fun updateSavedStatus(messageId: Long, isSaved: Boolean)
 
+    @Query("DELETE FROM messages WHERE groupId = :groupId")
+    suspend fun forceDeleteAllMessagesForGroup(groupId: String)
+
+    @Query("DELETE FROM messages WHERE groupId IS NULL AND ((fromUserId = :userId1 AND toUserId = :userId2) OR (fromUserId = :userId2 AND toUserId = :userId1))")
+    suspend fun forceDeleteAllMessagesForChat(userId1: String, userId2: String)
+
     @RawQuery
     suspend fun checkpoint(supportSQLiteQuery: SupportSQLiteQuery): Int
 }

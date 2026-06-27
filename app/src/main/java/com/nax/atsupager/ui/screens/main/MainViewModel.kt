@@ -482,7 +482,6 @@ class MainViewModel @Inject constructor(
         val targetId = contactId ?: groupId ?: return
         viewModelScope.launch {
             signalRepository.clearChat(targetId, isGroup, deleteFiles, deleteForEveryone)
-            if (!isGroup) sessionManager.getMediaDir(targetId, "").deleteRecursively()
         }
     }
 
@@ -507,14 +506,21 @@ class MainViewModel @Inject constructor(
 
     fun forwardSelectedMessages(targetIds: List<String>) {
         val msgs = _uiState.value.messages.filter { it.id in _uiState.value.selectedMessageIds }
-        val firstMsg = msgs.firstOrNull() ?: return
-        if (firstMsg.isPrivate) {
+        if (msgs.isEmpty()) return
+        
+        val containsPrivate = msgs.any { it.isPrivate }
+        if (containsPrivate) {
             _uiState.update { it.copy(error = context.getString(com.nax.atsupager.R.string.private_forward_blocked)) }
             clearMessageSelection()
             return
         }
+        
         clearMessageSelection()
-        viewModelScope.launch(Dispatchers.IO) { chatMediaSender.forwardMessage(firstMsg, targetIds) }
+        viewModelScope.launch(Dispatchers.IO) {
+            msgs.forEach { msg ->
+                chatMediaSender.forwardMessage(msg, targetIds)
+            }
+        }
     }
 
     fun addGroupMembers(memberIds: List<String>) = groupId?.let { id -> viewModelScope.launch(Dispatchers.IO) { groupRepository.addMembersToGroup(id, memberIds); refreshMemberNames(id) } }

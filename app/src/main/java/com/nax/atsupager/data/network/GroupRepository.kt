@@ -13,6 +13,7 @@ import com.nax.atsupager.data.db.MessageDao
 import com.nax.atsupager.data.db.ChatMessage
 import com.nax.atsupager.data.db.MessageType
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -125,7 +126,6 @@ class GroupRepository @Inject constructor(
         val currentUserId = userRepository.getCurrentUserId() ?: return
         val members = groupDao.getGroupMemberIds(groupId)
 
-        // Если нужно удалить сообщения у всех перед выходом
         if (deleteForEveryone) {
             signalRepository.clearChat(groupId, true, deleteFiles, true)
         }
@@ -152,8 +152,17 @@ class GroupRepository @Inject constructor(
             members.forEach { if (it != currentUserId) signalRepository.sendSignal(it, leaveSignal) }
         }
 
+        val allMsgs = messageDao.getMessagesForGroupSync(groupId)
+        allMsgs.forEach { msg -> 
+            msg.localFilePath?.let { path -> 
+                if (messageDao.getMessageCountByFilePath(path) <= 1) {
+                    try { File(path).delete() } catch(_:Exception){}
+                }
+            }
+        }
+
         groupDao.deleteGroup(groupId)
-        messageDao.deleteAllMessagesForGroup(groupId)
+        messageDao.forceDeleteAllMessagesForGroup(groupId)
     }
 
     suspend fun deleteGroup(groupId: String) {
@@ -172,8 +181,17 @@ class GroupRepository @Inject constructor(
             }
         }
 
+        val allMsgs = messageDao.getMessagesForGroupSync(groupId)
+        allMsgs.forEach { msg -> 
+            msg.localFilePath?.let { path -> 
+                if (messageDao.getMessageCountByFilePath(path) <= 1) {
+                    try { File(path).delete() } catch(_:Exception){}
+                }
+            }
+        }
+
         groupDao.deleteGroup(groupId)
-        messageDao.deleteAllMessagesForGroup(groupId)
+        messageDao.forceDeleteAllMessagesForGroup(groupId)
     }
 
     suspend fun getGroupMemberIds(groupId: String): List<String> = groupDao.getGroupMemberIds(groupId)
