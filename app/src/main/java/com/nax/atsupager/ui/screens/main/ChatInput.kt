@@ -145,7 +145,8 @@ fun AttachmentPreview(
                         Icon(
                             imageVector = if (attachment.isPrivate) Icons.Default.Shield else Icons.Outlined.Shield,
                             contentDescription = "Private",
-                            tint = if (attachment.isPrivate) MaterialTheme.colorScheme.primary else Color.Gray
+                            // Цвет щита теперь золотой при активации
+                            tint = if (attachment.isPrivate) Color(0xFFFFB300) else Color.Gray
                         )
                     }
                 }
@@ -228,7 +229,8 @@ private fun RecordingLayout(
             Icon(
                 imageVector = if (uiState.isPrivateMode) Icons.Default.Shield else Icons.Outlined.Shield,
                 contentDescription = "Private",
-                tint = if (uiState.isPrivateMode) MaterialTheme.colorScheme.primary else Color.Gray,
+                // Цвет щита золотой при активации
+                tint = if (uiState.isPrivateMode) Color(0xFFFFB300) else Color.Gray,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -278,7 +280,8 @@ private fun InputLayout(
                     Icon(
                         imageVector = if (uiState.isPrivateMode) Icons.Default.Shield else Icons.Outlined.Shield,
                         contentDescription = "Private",
-                        tint = if (uiState.isPrivateMode) MaterialTheme.colorScheme.primary else Color.Gray,
+                        // Цвет щита золотой при активации
+                        tint = if (uiState.isPrivateMode) Color(0xFFFFB300) else Color.Gray,
                         modifier = Modifier.size(20.dp)
                     )
                 }

@@ -501,6 +501,9 @@ class MainViewModel @Inject constructor(
                     messageDao.updateSavedStatus(msg.id, targetStatus)
                 }
             }
+            withContext(Dispatchers.Main) {
+                clearMessageSelection()
+            }
         }
     }
 

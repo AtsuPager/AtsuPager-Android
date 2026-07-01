@@ -69,6 +69,8 @@ fun MessageBubble(
     
     val isSystem = message.type == MessageType.SYSTEM
     val isGameInvite = message.type == MessageType.GAME_INVITE
+    
+    val isActionable = !isSystem && !isCallEvent && !isGameInvite
 
     val currentOnFileClick by rememberUpdatedState(onFileClick)
     val currentMessage by rememberUpdatedState(message)
@@ -79,9 +81,7 @@ fun MessageBubble(
         else -> Arrangement.Start
     }
     
-    val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-    } else if (isSystem || isGameInvite) {
+    val backgroundColor = if (isSystem || isGameInvite) {
         Color.Transparent
     } else if (isFromMe) {
         MaterialTheme.colorScheme.primaryContainer
@@ -95,28 +95,25 @@ fun MessageBubble(
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp)
     }
 
-    val selectionShape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .then(
-                if (isSelected) Modifier
-                    .padding(horizontal = 6.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), selectionShape)
-                    .border(width = 0.5.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), selectionShape)
-                else Modifier
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) 
+                else Color.Transparent
             )
-            .pointerInput(message.id, isSelectingText, isInSelectionMode) {
+            .pointerInput(message.id, isSelectingText, isInSelectionMode, isActionable) {
                 detectTapGestures(
                     onLongPress = { 
-                        if (!isSelectingText && !isSystem) {
+                        if (!isSelectingText && isActionable) {
                             onToggleSelection()
                         }
                     },
                     onTap = { 
                         if (isInSelectionMode) {
-                            onToggleSelection()
+                            if (isActionable) {
+                                onToggleSelection()
+                            }
                         } else if (isSelectingText) {
                             onSelectionChange(null)
                         } else {
@@ -150,103 +147,71 @@ fun MessageBubble(
                 }
             }
             
-            Box {
-                val isSecure = message.localFilePath?.endsWith(".enc") == true
-                val isDecrypted = !isSecure && message.localFilePath != null && 
-                                 (message.localFilePath.contains("AtsuPager") || message.localFilePath.startsWith("content://"))
-
-                val messageContentModifier = Modifier
-                    .widthIn(max = 330.dp)
-                    .then(
-                        if (!isSystem && !isGameInvite) {
-                            Modifier.shadow(elevation = if (isSelected) 0.dp else if (isCallEvent) 0.dp else 1.dp, shape = bubbleShape)
-                                    .background(backgroundColor, bubbleShape)
-                        } else Modifier
+            Row(verticalAlignment = Alignment.Bottom) {
+                if (isActionable && (message.isPrivate || message.isSaved)) {
+                    MessageStatusIcons(
+                        isPrivate = message.isPrivate,
+                        isSaved = message.isSaved,
+                        modifier = Modifier.padding(bottom = 6.dp, end = 8.dp) // Увеличил отступ до 8dp
                     )
-                    .padding(
-                        horizontal = if (isCallEvent || isSystem || isGameInvite) 0.dp else 12.dp,
-                        vertical = if (isCallEvent || isSystem || isGameInvite) 0.dp else 8.dp
-                    )
+                }
 
-                val isSideTimeType = message.type == MessageType.AUDIO || 
-                                     message.type == MessageType.FILE ||
-                                     message.type == MessageType.IMAGE ||
-                                     message.type == MessageType.VIDEO
+                Box {
+                    val isSecure = message.localFilePath?.endsWith(".enc") == true
+                    val isDecrypted = !isSecure && message.localFilePath != null && 
+                                     (message.localFilePath.contains("AtsuPager") || message.localFilePath.startsWith("content://"))
 
-                Column(modifier = messageContentModifier) {
-                    // Отображение цитируемого сообщения
-                    if (message.replyToId != null && !isCallEvent && !isSystem) {
-                        QuotedMessage(
-                            name = message.replyToName,
-                            text = message.replyToText,
-                            type = message.replyToType,
-                            onClick = { message.replyToId?.let { onScrollToMessage?.invoke(it) } },
-                            modifier = Modifier.padding(bottom = 4.dp)
+                    val messageContentModifier = Modifier
+                        .widthIn(max = 330.dp)
+                        .then(
+                            if (!isSystem && !isGameInvite) {
+                                Modifier.shadow(elevation = if (isCallEvent) 0.dp else 1.dp, shape = bubbleShape)
+                                        .background(backgroundColor, bubbleShape)
+                            } else Modifier
                         )
-                    }
+                        .padding(
+                            horizontal = if (isCallEvent || isSystem || isGameInvite) 0.dp else 12.dp,
+                            vertical = if (isCallEvent || isSystem || isGameInvite) 0.dp else 8.dp
+                        )
 
-                    if (isSideTimeType) {
-                        val isMedia = message.type == MessageType.IMAGE || message.type == MessageType.VIDEO
-                        val hasCaption = !message.text.isNullOrBlank()
+                    val isSideTimeType = message.type == MessageType.AUDIO || 
+                                         message.type == MessageType.FILE ||
+                                         message.type == MessageType.IMAGE ||
+                                         message.type == MessageType.VIDEO
 
-                        if (isMedia) {
-                            Column {
-                                // Preview
-                                Box(modifier = Modifier.wrapContentWidth()) {
-                                    when (message.type) {
-                                        MessageType.IMAGE -> ImageMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted)
-                                        MessageType.VIDEO -> VideoMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted)
-                                        else -> {}
-                                    }
-                                }
+                    Column(modifier = messageContentModifier) {
+                        if (message.replyToId != null && !isCallEvent && !isSystem) {
+                            QuotedMessage(
+                                name = message.replyToName,
+                                text = message.replyToText,
+                                type = message.replyToType,
+                                onClick = { message.replyToId?.let { onScrollToMessage?.invoke(it) } },
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
 
-                                if (hasCaption) {
-                                    Text(
-                                        text = message.text,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-                                    )
-                                }
+                        if (isSideTimeType) {
+                            val isMedia = message.type == MessageType.IMAGE || message.type == MessageType.VIDEO
+                            val hasCaption = !message.text.isNullOrBlank()
 
-                                // Timestamp/Status BELOW preview, RIGHT aligned
-                                if (!isCallEvent) {
-                                    TimestampWithSeparator(
-                                        message = message,
-                                        isFromMe = isFromMe,
-                                        isCompact = false,
-                                        modifier = Modifier.align(Alignment.End)
-                                    )
-                                }
-                            }
-                        } else {
-                            // Audio / File messages (Keep compact)
-                            Column {
-                                Row(
-                                    modifier = Modifier.wrapContentWidth(),
-                                    verticalAlignment = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
-                                                        Alignment.CenterVertically else Alignment.Bottom,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Box(modifier = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
-                                                   Modifier.weight(1f, fill = false) else Modifier) {
+                            if (isMedia) {
+                                Column {
+                                    Box(modifier = Modifier.wrapContentWidth()) {
                                         when (message.type) {
-                                            MessageType.AUDIO -> AudioMessage(currentUserId, message, isDownloading, downloadProgress, isUploading, isSecure, isDecrypted, playbackState, onPlayAudio, onStopAudio, onSeekAudio)
-                                            MessageType.FILE -> FileMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted, playbackState, { onPlayAudio(message) }, onStopAudio, onSeekAudio)
+                                            MessageType.IMAGE -> ImageMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted)
+                                            MessageType.VIDEO -> VideoMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted)
                                             else -> {}
                                         }
                                     }
-                                    
-                                    if (!isCallEvent && !hasCaption) {
-                                        TimestampWithSeparator(message, isFromMe, isCompact = true)
+
+                                    if (hasCaption) {
+                                        Text(
+                                            text = message.text,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                        )
                                     }
-                                }
-                                
-                                if (hasCaption) {
-                                    Text(
-                                        text = message.text,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-                                    )
+
                                     if (!isCallEvent) {
                                         TimestampWithSeparator(
                                             message = message,
@@ -256,24 +221,62 @@ fun MessageBubble(
                                         )
                                     }
                                 }
+                            } else {
+                                Column {
+                                    Row(
+                                        modifier = Modifier.wrapContentWidth(),
+                                        verticalAlignment = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
+                                                            Alignment.CenterVertically else Alignment.Bottom,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Box(modifier = if (message.type == MessageType.AUDIO || message.type == MessageType.FILE) 
+                                                       Modifier.weight(1f, fill = false) else Modifier) {
+                                            when (message.type) {
+                                                MessageType.AUDIO -> AudioMessage(currentUserId, message, isDownloading, downloadProgress, isUploading, isSecure, isDecrypted, playbackState, onPlayAudio, onStopAudio, onSeekAudio)
+                                                MessageType.FILE -> FileMessage(message, isDownloading, downloadProgress, isUploading, isFromMe, isSecure, isDecrypted, playbackState, { onPlayAudio(message) }, onStopAudio, onSeekAudio)
+                                                else -> {}
+                                            }
+                                        }
+                                        
+                                        if (!isCallEvent && !hasCaption) {
+                                            TimestampWithSeparator(message, isFromMe, isCompact = true)
+                                        }
+                                    }
+                                    
+                                    if (hasCaption) {
+                                        Text(
+                                            text = message.text,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                        )
+                                        if (!isCallEvent) {
+                                            TimestampWithSeparator(
+                                                message = message,
+                                                isFromMe = isFromMe,
+                                                isCompact = false,
+                                                modifier = Modifier.align(Alignment.End)
+                                            )
+                                        }
+                                    }
+                                }
                             }
-                        }
-                    } else {
-                        when (message.type) {
-                            MessageType.TEXT, MessageType.SYSTEM, MessageType.GAME_INVITE -> 
-                                TextMessage(message, isFromMe, isSecure, isDecrypted, isSelectingText, memberNames)
-                            MessageType.INCOMING_CALL, MessageType.OUTGOING_CALL, MessageType.MISSED_CALL -> 
-                                CallEventMessage(message.type, message.timestamp, message.text)
-                            else -> {}
-                        }
-                        
-                        if (!isCallEvent && !isSystem) {
-                            TimestampWithSeparator(
-                                message = message,
-                                isFromMe = isFromMe,
-                                isCompact = false,
-                                modifier = Modifier.align(Alignment.End)
-                            )
+                        } else {
+                            when (message.type) {
+                                MessageType.TEXT, MessageType.SYSTEM, MessageType.GAME_INVITE -> 
+                                    TextMessage(message, isFromMe, isSecure, isDecrypted, isSelectingText, memberNames)
+                                MessageType.INCOMING_CALL, MessageType.OUTGOING_CALL, MessageType.MISSED_CALL -> 
+                                    CallEventMessage(message.type, message.timestamp, message.text)
+                                else -> {}
+                            }
+                            
+                            if (!isCallEvent && !isSystem) {
+                                TimestampWithSeparator(
+                                    message = message,
+                                    isFromMe = isFromMe,
+                                    isCompact = false,
+                                    modifier = Modifier.align(Alignment.End)
+                                )
+                            }
                         }
                     }
                 }
@@ -283,38 +286,47 @@ fun MessageBubble(
 }
 
 @Composable
+private fun MessageStatusIcons(
+    isPrivate: Boolean,
+    isSaved: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp), // Увеличил расстояние между иконками
+        modifier = modifier
+    ) {
+        if (isPrivate) {
+            Icon(
+                imageVector = Icons.Default.Shield,
+                contentDescription = "Private",
+                modifier = Modifier.size(16.dp), // Увеличил до 16dp
+                tint = Color(0xFFFFB300) // Теплый золотой/янтарный цвет для защиты
+            )
+        }
+        if (isSaved) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = "Saved",
+                modifier = Modifier.size(16.dp), // Увеличил до 16dp
+                tint = Color.Red
+            )
+        }
+    }
+}
+
+@Composable
 private fun TimestampWithSeparator(
     message: ChatMessage,
     isFromMe: Boolean,
     isCompact: Boolean, 
-    modifier: Modifier = Modifier,
-    showPrivacyIcons: Boolean = true
+    modifier: Modifier = Modifier
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier.then(if (!isCompact) Modifier.padding(top = 2.dp) else Modifier)
     ) {
-        if (showPrivacyIcons) {
-            if (message.isPrivate) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            if (message.isSaved) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
         if (isFromMe) {
             val icon = if (message.remoteRead) Icons.Filled.DoneAll else if (message.isDelivered) Icons.Filled.DoneAll else Icons.Filled.Done
             val tint = if (message.remoteRead) Color(0xFF4CAF50) 

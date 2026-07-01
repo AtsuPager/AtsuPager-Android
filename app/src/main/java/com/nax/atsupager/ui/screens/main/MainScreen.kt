@@ -369,17 +369,24 @@ fun MainScreen(
                                         message.type == MessageType.VIDEO ||
                                         message.type == MessageType.AUDIO ||
                                         message.type == MessageType.FILE
+                                
+                                val isAudioType = message.type == MessageType.AUDIO || 
+                                                 (message.type == MessageType.FILE && message.mimeType?.startsWith("audio/") == true)
 
                                 if (isMediaMessage && message.localFilePath == null) {
-                                    activeDialog = MainDialog.DownloadOptions(message)
+                                    // Для аудио не показываем диалог выбора папки при клике на пузырь,
+                                    // чтобы всё взаимодействие шло через кнопку Play.
+                                    if (!isAudioType) {
+                                        activeDialog = MainDialog.DownloadOptions(message)
+                                    }
                                 } else if (message.localFilePath != null) {
                                     when (message.type) {
                                         MessageType.IMAGE -> viewModel.onViewImage(message)
                                         MessageType.VIDEO -> viewModel.onPlayVideo(message)
-                                        MessageType.AUDIO -> viewModel.playAudio(message)
+                                        MessageType.AUDIO -> { /* Игнорируем клик на пузырь, Play нажмут сами */ }
                                         MessageType.FILE -> {
                                             if (message.mimeType?.startsWith("audio/") == true) {
-                                                viewModel.playAudio(message)
+                                                /* Игнорируем клик на пузырь */
                                             } else {
                                                 MainUiUtils.openFile(context, message)
                                             }

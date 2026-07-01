@@ -232,8 +232,25 @@ class SignalProtocolProcessor @Inject constructor(
                 val currentCall = callStatusManager.activeCall.value
                 if (currentCall != null && currentCall.callId != rtcData.callId) return
                 
+                messageDao.insertMessage(ChatMessage(
+                    fromUserId = from,
+                    toUserId = currentUserId,
+                    text = "CALL_INCOMING",
+                    timestamp = createdAt,
+                    type = MessageType.INCOMING_CALL
+                ))
+
                 notificationHelper.showCallNotification(from, rtcData.callId ?: "unknown", rtcData.isVideo, rtcData.senderName)
                 callStatusManager.startCall(from, false, rtcData.isVideo, rtcData.callId, rtcData.payload, rtcData.senderName)
+            }
+            SignalType.BYE -> {
+                notificationHelper.cancelCallNotification()
+                val lastIncoming = messageDao.getLastMessageByType(from, MessageType.INCOMING_CALL)
+                if (lastIncoming != null && lastIncoming.text == "CALL_INCOMING") {
+                    messageDao.updateMessageTypeAndText(lastIncoming.id, MessageType.MISSED_CALL, "CALL_MISSED")
+                    // Показываем уведомление о пропущенном звонке в шторке
+                    notificationHelper.showUINotification(from, context.getString(R.string.missed_call), isGroup = false)
+                }
             }
             SignalType.GAME_INVITE, SignalType.CHESS_INVITE, SignalType.BACKGAMMON_INVITE, SignalType.CHECKERS_INVITE -> {
                 val gameName = when(rtcData.type) {

@@ -141,7 +141,13 @@ class SignalRepository @Inject constructor(
             }
             
             if (unreadCount > 0) {
-                notificationHelper.showUINotification(chatId, context.getString(R.string.notification_new_msg), isGroup = isGroup)
+                val lastMsg = if (isGroup) null else messageDao.getLastMessageByType(chatId, MessageType.MISSED_CALL)
+                val isMissedCall = lastMsg != null && !lastMsg.isRead
+                
+                val text = if (isMissedCall) context.getString(R.string.missed_call) 
+                           else context.getString(R.string.notification_new_msg)
+                
+                notificationHelper.showUINotification(chatId, text, isGroup = isGroup)
             } else {
                 lastUnreadChatId = null
             }
@@ -278,6 +284,9 @@ class SignalRepository @Inject constructor(
 
         if (signalToProcess != null) {
             if (signalToProcess.type == SignalType.OFFER) {
+                lastUnreadChatId = from
+                lastUnreadIsGroup = false
+
                 if (callStatusManager.isRecentlyEnded(signalToProcess.callId)) return
                 val currentCall = callStatusManager.activeCall.value
                 if (currentCall != null && currentCall.callId != signalToProcess.callId) {
